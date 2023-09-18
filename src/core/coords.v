@@ -3,9 +3,9 @@ module core
 // Coords is a struct that holds 3D coordinates.
 struct Coords {
 pub mut:
-	x int
-	y int
-	z int
+	x f32
+	y f32
+	z f32
 }
 
 // Coords.new instantiates a new Coords struct.
@@ -17,5 +17,5 @@ fn Coords.new() Coords {
 // str returns a string representation of the Coords struct.
 [inline]
 pub fn (c Coords) str() string {
-	return 'X-${c.x} Y-${c.y} Z-${c.z}'
+	return 'X:${c.x} Y:${c.y} Z:${c.z}'
 }

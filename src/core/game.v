@@ -16,6 +16,7 @@ const (
 // GameState represents the current state of the game.
 enum GameState {
 	in_game
+	paused
 }
 
 // Game is the primary game object.
@@ -50,6 +51,8 @@ pub mut:
 			false
 		}
 	}
+
+	weather Weather
 }
 
 // Game.new instantiates a new `Game` object.
@@ -62,6 +65,7 @@ pub fn Game.new() &Game {
 		window_title: core.const_window_title
 		frame_fn: frame
 		init_fn: init
+		event_fn: event
 		user_data: game
 	)
 	return game
@@ -91,7 +95,32 @@ fn init(mut game Game) {
 		exit(1)
 	}
 
+	game.weather = Weather{
+		// precipitation: Precipitation.new(.rain, 50.0, int(f32(game.height) * 0.5), game)
+		precipitation: Precipitation.new(.snow, 5.0, int(f32(game.height) * 0.33), game)
+	}
+
 	spawn game.debug()
+}
+
+// event is called every time an event is received.
+fn event(evt &gg.Event, mut game Game) {
+	match game.state {
+		.in_game {
+			if evt.typ == .key_down {
+				if evt.key_code == .escape {
+					game.state = .paused
+				}
+			}
+		}
+		.paused {
+			if evt.typ == .key_down {
+				if evt.key_code == .escape {
+					game.state = .in_game
+				}
+			}
+		}
+	}
 }
 
 // frame is called every time a frame is rendered.
@@ -114,7 +143,13 @@ fn frame(mut game Game) {
 
 // update handles all the math that goes on in the game.
 fn (mut game Game) update() {
-	game.camera.x += int(300 * game.time.delta)
+	if game.state == .paused {
+		return
+	}
+
+	game.camera.x += 150 * game.time.delta
+
+	game.weather.update(mut game)
 }
 
 // draw renders the game to the screen.
@@ -123,6 +158,18 @@ fn (mut game Game) draw_frame() {
 	if game.settings.show_fps {
 		game.draw_text(10, 10, 'FPS ${game.average_fps()}',
 			color: gx.white
+		)
+	}
+
+	game.weather.draw(mut game)
+
+	if game.state == .paused {
+		game.draw_rect_filled(0, 0, game.width, game.height, gx.Color{0, 0, 0, 128})
+		game.draw_text(int(game.width / 2), int(game.height / 2), 'Paused',
+			color: gx.white
+			size: 64
+			align: .center
+			vertical_align: .middle
 		)
 	}
 }
@@ -140,6 +187,7 @@ fn (mut game Game) debug() {
 	for {
 		println('Delta: ${game.time.delta}')
 		println('FPS: ${game.time.fps}')
+		println('Camera: ${game.camera}')
 		println('Frame: ${game.frame_count}\n')
 		time.sleep(time.second * 3)
 	}
