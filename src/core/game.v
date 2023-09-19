@@ -97,7 +97,7 @@ fn init(mut game Game) {
 
 	game.weather = Weather{
 		// precipitation: Precipitation.new(.rain, 50.0, int(f32(game.height) * 0.5), game)
-		precipitation: Precipitation.new(.snow, 5.0, int(f32(game.height) * 0.33), game)
+		precipitation: Precipitation.new(.snow, 30.0, int(f32(game.height) * 0.33), game)
 	}
 
 	spawn game.debug()
@@ -105,6 +105,15 @@ fn init(mut game Game) {
 
 // event is called every time an event is received.
 fn event(evt &gg.Event, mut game Game) {
+	if evt.typ == .resized {
+		game.width, game.height = evt.window_width, evt.window_height
+		if precipitation := game.weather.precipitation {
+			game.weather.precipitation = Precipitation.new(precipitation.typ, precipitation.fall_speed,
+				int(f32(game.height) * 0.5), game)
+		}
+		return
+	}
+
 	match game.state {
 		.in_game {
 			if evt.typ == .key_down {

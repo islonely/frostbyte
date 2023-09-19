@@ -3,5 +3,7 @@ Module {
 	description: 'The Frostbyte game'
 	version: '0.1.0'
 	license: 'All Rights Reserved'
-	dependencies: []
+	dependencies: [
+		'https://github.com/islonely/mouse'
+	]
 }
