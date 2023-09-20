@@ -52,7 +52,12 @@ pub mut:
 		}
 	}
 
-	weather Weather
+	weather    Weather
+	characters struct {
+	pub mut:
+		available []&Character
+		selected  int
+	}
 }
 
 // Game.new instantiates a new `Game` object.
@@ -69,6 +74,11 @@ pub fn Game.new() &Game {
 		user_data: game
 	)
 	return game
+}
+
+[inline]
+fn (game Game) character() &Character {
+	return game.characters.available[game.characters.selected]
 }
 
 // average_fps returns the average FPS over the last 60 frames.
@@ -99,6 +109,10 @@ fn init(mut game Game) {
 		// precipitation: Precipitation.new(.rain, 50.0, int(f32(game.height) * 0.5), game)
 		precipitation: Precipitation.new(.snow, 30.0, int(f32(game.height) * 0.33), game)
 	}
+	game.characters.available << Knight.new(mut game.Context) or {
+		game.fatal_error('Failed to load knight.')
+		exit(1)
+	}
 
 	spawn game.debug()
 }
@@ -119,6 +133,10 @@ fn event(evt &gg.Event, mut game Game) {
 			if evt.typ == .key_down {
 				if evt.key_code == .escape {
 					game.state = .paused
+				}
+			} else if evt.typ == .key_up {
+				if !game.pressed_keys[gg.KeyCode.left] && !game.pressed_keys[gg.KeyCode.right] {
+					game.character().state = .idle
 				}
 			}
 		}
@@ -156,7 +174,23 @@ fn (mut game Game) update() {
 		return
 	}
 
-	game.camera.x += 150 * game.time.delta
+	// game.camera.x += 150 * game.time.delta
+	if game.pressed_keys[gg.KeyCode.left] {
+		game.character().state = .running
+		game.character().facing = .left
+		game.character().x -= game.character().run_speed * game.time.delta
+		if game.character().x < game.camera.x + game.width / 8 {
+			game.camera.x -= game.character().run_speed * game.time.delta
+		}
+	} else if game.pressed_keys[gg.KeyCode.right] {
+		game.character().state = .running
+		game.character().facing = .right
+		game.character().x += game.character().run_speed * game.time.delta
+		if game.character().x > game.camera.x + int(f32(game.width) / 1.75) {
+			game.camera.x += game.character().run_speed * game.time.delta
+		}
+	}
+	game.characters.available[game.characters.selected].update()
 
 	game.weather.update(mut game)
 }
@@ -169,6 +203,8 @@ fn (mut game Game) draw_frame() {
 			color: gx.white
 		)
 	}
+
+	game.characters.available[game.characters.selected].draw(mut game)
 
 	game.weather.draw(mut game)
 
