@@ -6,13 +6,14 @@ import gx
 // DraggableBorder is a border that can be dragged left or right.
 struct DraggableBorder {
 mut:
-	x                  f32
-	y                  f32
-	width              f32
-	height             f32
-	max_drag_left      ?f32
-	max_drag_right     ?f32
-	color              gx.Color = gx.Color{100, 160, 245, 255}
+	x              f32
+	y              f32
+	width          f32
+	height         f32
+	max_drag_left  ?f32
+	max_drag_right ?f32
+	// color              gx.Color = gx.Color{100, 160, 245, 255}
+	color              gx.Color = gx.rgba(0, 0, 0, 0)
 	mouse_down_on_self bool
 }
 

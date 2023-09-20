@@ -16,7 +16,8 @@ mut:
 	y                f32
 	width            f32
 	side             Side
-	color            gx.Color = gx.Color{250, 245, 240, 255}
+	text_color       gx.Color = gx.Color{0xee, 0xee, 0xee, 0xff}
+	bg_color         gx.Color = gx.Color{0x11, 0x11, 0x1a, 0xff}
 	draggable_border DraggableBorder
 	filetree         FileTree
 }
@@ -88,7 +89,7 @@ fn (mut menu SideMenu) update() {
 }
 
 fn (mut menu SideMenu) draw(mut gfx gg.Context) {
-	gfx.draw_rect_filled(menu.x, menu.y, menu.width, gfx.height, menu.color)
+	gfx.draw_rect_filled(menu.x, menu.y, menu.width, gfx.height, menu.bg_color)
 	menu.filetree.draw(mut gfx)
 	menu.draggable_border.draw(mut gfx)
 }

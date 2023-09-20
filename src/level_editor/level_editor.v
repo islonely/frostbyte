@@ -48,14 +48,17 @@ fn frame(mut app LevelEditorApp) {
 // event is called when an event occurs.
 fn event(evt &gg.Event, mut app LevelEditorApp) {
 	app.sidemenu.event(evt, app.window_size())
+	for mut dialog in app.dialogs {
+		dialog.event(evt, mut app)
+	}
 
 	match evt.typ {
 		.key_down {
 			if evt.key_code == .n && app.key_modifiers == .ctrl && !app.key_repeat {
-				width := 400
-				height := 200
+				width := 500
+				height := 80
 				x := (app.window_size().width - width) / 2
-				y := (app.window_size().height - height) / 2
+				y := 20
 				app.dialogs << DialogPrompt.new('New File', x, y, width, height, Padding{10, 10, 10, 10},
 					'Enter a name for the new file:')
 			}
@@ -71,7 +74,7 @@ struct LevelEditorApp {
 mut:
 	sidemenu     SideMenu
 	working_file string
-	dialogs      []DialogPrompt
+	dialogs      []Dialog
 }
 
 struct Padding {

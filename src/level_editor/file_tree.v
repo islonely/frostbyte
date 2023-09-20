@@ -6,12 +6,13 @@ import os
 
 struct FileTree {
 mut:
-	x         f32
-	y         f32
-	width     f32
-	root      string
-	items     []&FileNode
-	text_size int = 18
+	x          f32
+	y          f32
+	width      f32
+	root       string
+	text_color gx.Color = gx.rgb(0xee, 0xee, 0xee)
+	items      []&FileNode
+	text_size  int = 18
 }
 
 struct FileNode {
@@ -81,7 +82,7 @@ fn (mut filetree FileTree) draw(mut gfx gg.Context) {
 	mut i := 0
 	for mut item in filetree.items {
 		i += item.draw(int(filetree.x), int(filetree.y + (f32(filetree.text_size) * 1.5 * i)),
-			filetree.text_size, mut gfx)
+			filetree.text_size, filetree.text_color, mut gfx)
 		i++
 	}
 }
@@ -114,17 +115,18 @@ fn (mut filenode FileNode) event(evt &gg.Event) {
 	}
 }
 
-fn (mut filenode FileNode) draw(x int, y int, text_size int, mut gfx gg.Context) int {
+fn (mut filenode FileNode) draw(x int, y int, text_size int, color gx.Color, mut gfx gg.Context) int {
 	mut i := 0
 	if filenode.is_dir {
-		gfx.draw_triangle_filled(x - 15, y + 5, x - 5, y + 10, x - 15, y + 15, gx.black)
-
 		if filenode.is_open {
 			for mut child in filenode.children {
-				i += child.draw(x + 10, int(y + (f32(text_size) * 1.5 * (i + 1))), text_size, mut
-					gfx)
+				i += child.draw(x + 10, int(y + (f32(text_size) * 1.5 * (i + 1))), text_size,
+					color, mut gfx)
 				i++
 			}
+			gfx.draw_triangle_filled(x - 15, y + 5, x - 5, y + 5, x - 10, y + 15, color)
+		} else {
+			gfx.draw_triangle_filled(x - 15, y + 5, x - 5, y + 10, x - 15, y + 15, color)
 		}
 	}
 
@@ -138,7 +140,7 @@ fn (mut filenode FileNode) draw(x int, y int, text_size int, mut gfx gg.Context)
 		gfx.draw_rect_filled(x - 2, y - 2, filenode.bounding_box.width,
 			filenode.bounding_box.height + 6, gx.Color{169, 190, 235, 90})
 	}
-	gfx.draw_text(x, y, filenode.name, size: 20)
+	gfx.draw_text(x, y, filenode.name, size: 20, color: color)
 	return i
 }
 
