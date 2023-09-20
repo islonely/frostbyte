@@ -2,6 +2,7 @@ module main
 
 import mouse
 import gg
+import os
 
 const screen_size = mouse.screen_size()
 
@@ -33,13 +34,47 @@ fn frame(mut app LevelEditorApp) {
 	{ // update
 		app.sidemenu.update()
 		for mut dialog in app.dialogs {
+			if dialog.cancelled {
+				app.dialogs = app.dialogs.filter(it.id != dialog.id)
+				continue
+			}
+			if dialog.done {
+				if mut dialog is DialogToast {
+					app.dialogs = app.dialogs.filter(it.id != dialog.id)
+					continue
+				}
+
+				if dialog.id == app.new_file_dialog_id {
+					if mut dialog is DialogPrompt {
+						app.working_file = os.abs_path(os.join_path(app.working_dir, dialog.fields[0].value))
+						if os.exists(app.working_file) {
+							msg := 'Cannot overwrite: ${app.working_file}'
+							app.dialogs << DialogToast.new(mut app, 'New File Failure',
+								msg, int(f32(msg.len * 16) / 2 + 20), 80, .bottom_right)
+							app.dialogs = app.dialogs.filter(it.id != dialog.id)
+							continue
+						}
+						os.create(app.working_file) or {
+							app.dialogs << DialogToast.new(mut app, 'New File Failure',
+								app.working_file, int(f32(app.working_file.len * 16) / 2 + 20),
+								80, .bottom_right)
+							app.dialogs = app.dialogs.filter(it.id != dialog.id)
+							continue
+						}
+						app.dialogs << DialogToast.new(mut app, 'New File', app.working_file,
+							int(f32(app.working_file.len * 16) / 2 + 20), 80, .bottom_right)
+						app.dialogs = app.dialogs.filter(it.id != dialog.id)
+						continue
+					}
+				}
+			}
 			dialog.update()
 		}
 	}
 	{ // draw
 		app.sidemenu.draw(mut app.Context)
 		for mut dialog in app.dialogs {
-			dialog.draw(mut app.Context)
+			dialog.draw()
 		}
 	}
 	app.end()
@@ -49,7 +84,7 @@ fn frame(mut app LevelEditorApp) {
 fn event(evt &gg.Event, mut app LevelEditorApp) {
 	app.sidemenu.event(evt, app.window_size())
 	for mut dialog in app.dialogs {
-		dialog.event(evt, mut app)
+		dialog.event(evt)
 	}
 
 	match evt.typ {
@@ -59,8 +94,10 @@ fn event(evt &gg.Event, mut app LevelEditorApp) {
 				height := 80
 				x := (app.window_size().width - width) / 2
 				y := 20
-				app.dialogs << DialogPrompt.new('New File', x, y, width, height, Padding{10, 10, 10, 10},
+				dialog := DialogPrompt.new(mut app, 'New File', x, y, width, height, Padding{10, 10, 10, 10},
 					'Enter a name for the new file:')
+				app.dialogs << dialog
+				app.new_file_dialog_id = dialog.id
 			}
 		}
 		else {}
@@ -72,9 +109,11 @@ fn event(evt &gg.Event, mut app LevelEditorApp) {
 struct LevelEditorApp {
 	gg.Context
 mut:
-	sidemenu     SideMenu
-	working_file string
-	dialogs      []Dialog
+	sidemenu           SideMenu
+	working_dir        string = @VMODROOT + '/levels'
+	working_file       string
+	dialogs            []Dialog
+	new_file_dialog_id string
 }
 
 struct Padding {
