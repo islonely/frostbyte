@@ -8,8 +8,8 @@ import time
 import math
 
 const (
-	const_initial_width  = 1280
-	const_initial_height = 720
+	const_initial_width  = 1920
+	const_initial_height = 1080
 	const_window_title   = 'Frostbyte'
 )
 

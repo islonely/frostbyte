@@ -22,6 +22,7 @@ pub mut:
 pub fn Knight.new(mut g gg.Context) !Knight {
 	idle_img := g.create_image(@VMODROOT + '/src/assets/Knight_player/Idle_KG_1.png')!
 	run_img := g.create_image(@VMODROOT + '/src/assets/Knight_player/Walking_KG_1.png')!
+	jump_img := g.create_image(@VMODROOT + '/src/assets/Knight_player/Jump_KG_1.png')!
 	return Knight{
 		width: 200
 		height: 128
@@ -33,6 +34,10 @@ pub fn Knight.new(mut g gg.Context) !Knight {
 			.running: Sprites{
 				image: &run_img
 				rects: []gg.Rect{len: 7, init: gg.Rect{index * 100, 0, 100, 64}}
+			}
+			.jumping: Sprites{
+				image: &jump_img
+				rects: []gg.Rect{len: 6, init: gg.Rect{0, 0, 100, 64}}
 			}
 		}
 	}
