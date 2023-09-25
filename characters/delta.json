@@ -1,0 +1,42 @@
+{
+    "name": "Delta",
+    "width": 76,
+    "height": 128,
+    "sprites": {
+        "idle": {
+            "sprite-sheet-path": "../src/assets/delta.png",
+            "oscillate": true,
+            "frame-duration": 250,
+            "frames": [
+                [0, 52, 31, 52],
+                [31, 52, 31, 52],
+                [62, 52, 31, 52],
+                [93, 52, 31,  52]
+            ]
+        },
+        "running": {
+            "sprite-sheet-path": "../src/assets/delta.png",
+            "oscillate": true,
+            "frame-duration": 60,
+            "frames": [
+                [0, 104, 31, 52],
+                [31, 104, 31, 52],
+                [62, 104, 31, 52],
+                [93, 104, 31, 52],
+                [124, 104, 31, 52],
+                [153, 104, 31, 52]
+            ]
+        },
+        "jumping": {
+            "sprite-sheet-path": "../src/assets/delta.png",
+            "frames": [
+                [0, 0, 31, 52],
+                [31, 0, 31, 52],
+                [62, 0, 31, 52],
+                [93, 0, 31, 52],
+                [124, 0, 31, 52],
+                [153, 0, 31, 52]
+            ]
+        }
+    }
+}

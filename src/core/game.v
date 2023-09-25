@@ -109,10 +109,7 @@ fn init(mut game Game) {
 		// precipitation: Precipitation.new(.rain, 50.0, int(f32(game.height) * 0.5), game)
 		precipitation: Precipitation.new(.snow, 30.0, int(f32(game.height) * 0.33), game)
 	}
-	game.characters.available << Knight.new(mut game.Context) or {
-		game.fatal_error('Failed to load knight.')
-		exit(1)
-	}
+	init_characters(mut game) or { game.fatal_error('Failed to load characters: ${err.msg()}') }
 
 	spawn game.debug()
 }
@@ -179,14 +176,14 @@ fn (mut game Game) update() {
 		game.character().state = .running
 		game.character().facing = .left
 		game.character().x -= game.character().run_speed * game.time.delta
-		if game.character().x < game.camera.x + game.width / 8 {
+		if game.character().x < game.camera.x + int(f32(game.width) * 0.2) - game.character().width / 2 {
 			game.camera.x -= game.character().run_speed * game.time.delta
 		}
 	} else if game.pressed_keys[gg.KeyCode.right] {
 		game.character().state = .running
 		game.character().facing = .right
 		game.character().x += game.character().run_speed * game.time.delta
-		if game.character().x > game.camera.x + int(f32(game.width) / 1.75) {
+		if game.character().x > game.camera.x + int(f32(game.width) * 0.8) - game.character().width / 2 {
 			game.camera.x += game.character().run_speed * game.time.delta
 		}
 	}
@@ -204,7 +201,8 @@ fn (mut game Game) draw_frame() {
 		)
 	}
 
-	game.characters.available[game.characters.selected].draw(mut game)
+	mut character := game.character()
+	character.draw(mut game)
 
 	game.weather.draw(mut game)
 

@@ -1,0 +1,46 @@
+{
+    "name": "Knight",
+    "width": 200,
+    "height": 128,
+    "sprites": {
+        "idle": {
+            "sprite-sheet-path": "../src/assets/Knight_player/Idle_KG_1.png",
+            "oscillate": false,
+            "frame-duration": 500,
+            "frames": [
+                [0, 0, 100, 64],
+                [100, 0, 100, 64],
+                [200, 0, 100, 64],
+                [300, 0, 100, 64]
+            ]
+        },
+        "running": {
+            "sprite-sheet-path": "../src/assets/Knight_player/Walking_KG_1.png",
+            "oscillate": false,
+            "frame-duration": 100,
+            "frames": [
+                [0, 0, 100, 64],
+                [100, 0, 100, 64],
+                [200, 0, 100, 64],
+                [300, 0, 100, 64],
+                [400, 0, 100, 64],
+                [500, 0, 100, 64],
+                [600, 0, 100, 64]
+            ]
+        },
+        "jumping": {
+            "sprite-sheet-path": "../src/assets/Knight_player/Jump_KG_1.png",
+            "oscillate": false,
+            "frame-duration": 100,
+            "frames": [
+                [0, 0, 100, 64],
+                [100, 0, 100, 64],
+                [200, 0, 100, 64],
+                [300, 0, 100, 64],
+                [400, 0, 100, 64],
+                [500, 0, 100, 64],
+                [600, 0, 100, 64]
+            ]
+        }
+    }
+}
