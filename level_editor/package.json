@@ -10,7 +10,8 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.4.0"
+    "@tauri-apps/api": "^1.4.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^2.0.3",

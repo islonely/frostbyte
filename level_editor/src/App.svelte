@@ -1,8 +1,16 @@
 <script>
 	import { open } from '@tauri-apps/api/dialog';
 	import { convertFileSrc } from '@tauri-apps/api/tauri';
+	import { v4 as uuid_v4 } from 'uuid';
+
+	let images_file_filter = {
+		name: 'Images',
+		extensions: ['png', 'jpg', 'jpeg', 'bmp']
+	};
 
 	let grid_cell_size = 40;
+
+	let tilesets = [];
 
 	// backgrounds is a list of images that are drawn behind the layers in the game.
 	window.backgrounds = {
@@ -87,6 +95,32 @@
 			let addLayerDialogCancel = document.querySelector('button#addLayerDialogCancel');
 			addLayerDialogCancel.addEventListener('click', function() {
 				document.querySelector('div#addLayerDialog').classList.add('hidden');
+			});
+
+			// Opens a dialog to add a new tileset.
+			let addTilesetBttn = document.querySelector('div#addTilesetBttn');
+			addTilesetBttn.addEventListener('click', function() {
+				document.querySelector('div#addTilesetDialog').classList.remove('hidden');
+			});
+			// Checks if the tile size input is valid.
+			let addTilesetDialogTileSize = document.querySelectorAll('div#addTilesetDialogTileSize > input');
+			addTilesetDialogTileSize.forEach(function(elem) {
+				elem.addEventListener('keyup', function() {
+					addTilesetDialogTileSizeKeyUp(this);
+				});
+			});
+			// Adds a tileset to the tilesets list.
+			let addTilesetDialogAdd = document.querySelector('button#addTilesetDialogAdd');
+			addTilesetDialogAdd.addEventListener('click', function() {
+				let name = document.querySelector('div#addTilesetDialogName > input').value;
+				let tile_width = parseInt(addTilesetDialogTileSize[0].value);
+				let tile_height = parseInt(addTilesetDialogTileSize[1].value);
+				if (addTilesetDialogTileSizeKeyUp(addTilesetDialogTileSize[0]) && addTilesetDialogTileSizeKeyUp(addTilesetDialogTileSize[1])) {
+					addTileset(name, {width: tile_width, height: tile_height});
+					document.querySelector('div#addTilesetDialog').classList.add('hidden');
+					return true;
+				}
+				return false;
 			});
 
 			window.canvas = document.getElementById('level');
@@ -189,6 +223,102 @@
 
 		window.requestAnimationFrame(draw);
 	}
+	
+	// addTilesetDialogTileSizeKeyUp checks if the tile size input is valid. A tile size
+	// is valid if it is an integer.
+	// @param elem: HTMLInputElement
+	// @return bool
+	function addTilesetDialogTileSizeKeyUp(elem) {
+		if (elem.value.length == 0) {
+			elem.classList.remove('good');
+			elem.classList.add('bad');
+			return false;
+		}
+
+		if (elem.value < 1) {
+			elem.classList.remove('good');
+			elem.classList.add('bad');
+			return false;
+		}
+
+		elem.classList.remove('bad');
+		elem.classList.add('good');
+		return true;
+	}
+
+	// addTileset opens a file dialog and adds the selected file to the tilesets list.
+	// A tileset is an image that is used to create a level. The tileset is split into
+	// tiles that are used to create the level. The tileset is also used to create the
+	// collision map for the level if the tiles are placed on the active layer.
+	// @param tile_size: Object {width: int, height: int}
+	// @return bool
+	async function addTileset(name, tile_size) {
+		let selected_file = await open({
+			multiple: false,
+			filters: [images_file_filter]
+		});
+		if (selected_file === null) {
+			return false;
+		}
+		if (!(tile_size?.width !== undefined || tile_size?.height !== undefined)) {
+			return false;
+		}
+		let file_path = Array.isArray(selected_file) ? selected_file[0] : selected_file
+		let tileset = {
+			name: (name === undefined || name.length == 0) ? file_path.split('\\').pop().split('/').pop() : name,
+			path: file_path,
+			img: new Image(),
+			size: tile_size,
+			id: uuid_v4()
+		};
+		tileset.img.src = convertFileSrc(file_path);
+		tileset.img.crossOrigin = 'Anonymous';
+		tilesets.push(tileset);
+		
+
+		tileset.img.addEventListener('load', function(evt) {
+			console.log(tileset.img.width, tileset.img.height);
+			// diceImage splits the tileset image into tiles.
+			// @return Array of strings (base64 encoded images)
+			function diceImage() {
+				let canvas = document.createElement('canvas');
+				canvas.width = tile_size.width;
+				canvas.height = tile_size.height;
+				let context = canvas.getContext('2d');
+				let diced_img = new Array();
+
+				// iterate through the tileset image based on the tile_size
+				// and add each tile to the diced_img array as a dataURL
+				for (let y = 0; y < tileset.img.height; y += tile_size.height) {
+					for (let x = 0; x < tileset.img.width; x += tile_size.width) {
+						context.clearRect(0, 0, canvas.width, canvas.height);
+						context.drawImage(tileset.img, x, y, tile_size.width, tile_size.height, 0, 0, tile_size.width, tile_size.height);
+						diced_img.push(canvas.toDataURL());
+					}
+				}
+
+				return diced_img;
+			}
+
+			let diced_img = diceImage();
+			let tileset_container = document.querySelector('div#tilesets');
+			let tileset_div = document.createElement('div');
+			tileset_div.classList.add('tileset');
+			diced_img.forEach(function(data_url) {
+				let img = document.createElement('img');
+				img.classList.add('tile');
+				img.src = data_url;
+				tileset_div.appendChild(img);
+			});
+			let tileset_name = document.createElement('div');
+			tileset_name.classList.add('tileset-name');
+			tileset_name.innerHTML = tileset.name;
+			tileset_container.appendChild(tileset_name);
+			tileset_container.appendChild(tileset_div);
+		});
+
+		return true;
+	}
 
 	// addLayerDialogZIndexKeyUp checks if the z-index input is valid. A z-index is valid if it is an integer.
 	// @param elem: HTMLInputElement
@@ -273,10 +403,7 @@
 	async function addBackground() {
 		let selected_files = await open({
 			multiple: true,
-			filters: [{
-				name: 'Images',
-				extensions: ['png', 'jpg', 'jpeg', 'bmp']
-			}]
+			filters: [images_file_filter]
 		});
 
 		// addFileToList adds a background to the backgrounds list and adds a list item
@@ -317,7 +444,7 @@
 
 <main>
 	<!-- Add Layer Dialog -->
-	<div id="addLayerDialog" class="hidden">
+	<div id="addLayerDialog" class="dialog hidden">
 		<div id="addLayerDialogHeader">
 			Add Layer
 		</div>
@@ -335,6 +462,27 @@
 		</div>
 	</div>
 	<!-- End Add Layer Dialog -->
+
+	<!-- Add Tileset Dialog -->
+	<div id="addTilesetDialog" class="dialog hidden">
+		<div id="addTilesetDialogHeader">
+			Add Tileset
+		</div>
+		<div id="addTilesetDialogBody">
+			<div id="addTilesetDialogName">
+				<input type="text" placeholder="Name">
+			</div>
+			<div id="addTilesetDialogTileSize">
+				<input type="number" placeholder="Tile Width">
+				<input type="number" placeholder="Tile Height">
+			</div>
+		</div>
+		<div id="addTilesetDialogFooter">
+			<button id="addTilesetDialogCancel" class="bad">Cancel</button>
+			<button id="addTilesetDialogAdd" class="good">Add</button>
+		</div>
+	</div>
+	<!-- End Add Tileset Dialog -->
 
 	<!-- Canvas -->
 	<div id="canvas-container">
@@ -380,6 +528,18 @@
 			<ul id="layers"></ul>
 		</div>
 		<!-- End Layers -->
+
+		<!-- Tileset -->
+		<div id="tileset-container">
+			<div id="addTilesetBttn">
+				<svg class="sidebar-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+				</svg>				  
+			</div>
+			<div class="sidebar-section-title">Tileset</div>
+			<div id="tilesets"></div>
+		</div>
+		<!-- End Tileset -->
 	</div>
 	<!-- End Sidebar -->
 </main>
@@ -412,7 +572,7 @@
 	}
 
 	:global(div#sidebar-container.sidebar-closed) {
-		right: -350px !important;
+		right: -400px !important;
 	}
 
 	:global(div#sidebar-opener.sidebar-closed) {
@@ -513,7 +673,20 @@
 		width: 100%;
 		height: 100%;
 
-		> div#addLayerDialog {
+		::-webkit-scrollbar {
+			width: 5px;
+		}
+
+		::-webkit-scrollbar-thumb {
+			background-color: #eee9;
+			border-radius: 50px;
+
+			&:hover {
+				background-color: #eee;
+			}
+		}
+
+		> div.dialog {
 			position: fixed;
 			width: 350px;
 			background-color: #22222a;
@@ -577,7 +750,7 @@
 			position: absolute;
 			width: 36px;
 			top: 3px;
-			right: 314px;
+			right: 364px;
 			padding: 5px 3px 0px 3px;
 			z-index: 5;
 			border: 1px solid #0000;
@@ -592,7 +765,7 @@
 		}
 
 		> div#sidebar-container {
-			width: 350px;
+			width: 400px;
 			height: 100%;
 			position: absolute;
 			top: 0;
@@ -623,6 +796,53 @@
 					margin-top: 3px;
 					font-size: 0.825rem;
 					color: #aaa;
+				}
+			}
+
+			div#tileset-container {
+				overflow-y: auto;
+
+				
+
+				div#tilesets {
+					display: flex;
+					flex-direction: column;
+
+					:global(div.tileset-name) {
+						margin-bottom: 5px;
+						border-bottom: 1px solid #eeeb;
+					}
+
+					> :global(.tileset) {
+						display: grid;
+						grid-template-columns: repeat(auto-fill, 40px);
+						gap: 5px;
+						justify-content: space-between;
+
+						&:not(:last-of-type) {
+							margin-bottom: 25px;
+						}
+
+						> :global(.tile) {
+							cursor: pointer;
+							border: 1px solid #ccca;
+							border-color: #ccca;
+							box-shadow: 0 0 5px 0 #0000;
+							width: 40px !important;
+							height: 40px !important;
+							transition: border-color 0.1s, box-shadow 0.1s;
+
+							&:hover {
+								border-color: #ffff;
+								box-shadow: 0px 0px 5px 0px #ffff;
+							}
+						}
+
+						> :global(.tile.selected) {
+							border-color: #ffff;
+							box-shadow: 0px 0px 5px 0px #ffff;
+						}
+					}
 				}
 			}
 		}
