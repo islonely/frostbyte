@@ -7,6 +7,7 @@ struct Camera2D {
 	Coords
 pub mut:
 	tilt f32
+	zoom f32 = 1.5
 }
 
 // Camera2D.new instantiates a new Camera2D struct.

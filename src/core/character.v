@@ -95,7 +95,6 @@ fn init_characters(mut game Game) ! {
 				}
 			}
 		}
-		println(character)
 		game.characters.available << character
 	})
 }
