@@ -104,20 +104,22 @@ pub struct Character {
 pub mut:
 	name string
 	// id used in case modders add characters with matching names
-	id             string = rand.uuid_v4()
-	x              f32
-	y              f32
-	z              f32
-	width          f32
-	height         f32
-	run_speed      f32 = 300
-	state          CharacterState = .idle
+	id        string = rand.uuid_v4()
+	x         f32
+	y         f32
+	z         f32
+	width     f32
+	height    f32
+	run_speed f32 = 300
+	state     CharacterState = .idle
+	// todo: make this map[string]Sprites so that modders can add new states.
 	sprites        map[CharacterState]Sprites
 	facing         Direction2D = .right
 	anim_idx       int
 	anim_stopwatch time.StopWatch = time.new_stopwatch(auto_start: true)
 }
 
+// update progresses the character's animation based on its current state.
 pub fn (mut character Character) update() {
 	dur := character.sprites[character.state].frame_duration or {
 		time.millisecond * 700 / character.sprites[character.state].rects.len
@@ -133,6 +135,7 @@ pub fn (mut character Character) update() {
 	}
 }
 
+// draw draws the character's current animation frame.
 pub fn (mut character Character) draw(mut game Game) {
 	flip_x := if character.facing == .left { true } else { false }
 	game.draw_image_with_config(
@@ -148,18 +151,23 @@ pub fn (mut character Character) draw(mut game Game) {
 	)
 }
 
+// Direction2D represents a direction something can face in 2D space.
 pub enum Direction2D {
 	left
 	right
 }
 
+// Sprites represents a set of sprites for a character.
 struct Sprites {
 pub mut:
+	// The spritesheet image for the character.
 	image &gg.Image
+	// The position and size of each sprite in the spritesheet.
 	rects []gg.Rect
-	// makes the animation starts playing through the sprites in reverse order
+	// Makes the animation starts playing through the sprites in reverse order
 	// once the end is reaced instead of looping back to the beginning.
-	oscillate      bool
+	oscillate bool
+	// How long each frame of the animation should be displayed for.
 	frame_duration ?time.Duration
 }
 

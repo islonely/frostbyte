@@ -3,9 +3,10 @@ module core
 import arrays
 import gg
 import gx
+import math
+import core.menu
 import term
 import time
-import math
 
 const (
 	const_initial_width  = 1920
@@ -17,6 +18,7 @@ const (
 enum GameState {
 	in_game
 	paused
+	main_menu
 }
 
 // Game is the primary game object.
@@ -25,7 +27,7 @@ struct Game {
 	gg.Context
 pub mut:
 	camera Camera2D
-	state  GameState = .in_game
+	state  GameState = .main_menu
 
 	frame_count u64
 	time        struct {
@@ -58,6 +60,8 @@ pub mut:
 		available []&Character
 		selected  int
 	}
+
+	main_menu menu.MainMenu
 }
 
 // Game.new instantiates a new `Game` object.
@@ -92,6 +96,38 @@ fn (game Game) average_fps() int {
 
 // init is called once before the game is first started.
 fn init(mut game Game) {
+	game.main_menu = menu.MainMenu.new(menu.ButtonMenuItem{
+		label: 'Play'
+		on: menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				game.camera.x, game.camera.y = 0, 0
+				game.state = .in_game
+			}
+		}
+	}, menu.ButtonMenuItem{
+		label: 'Settings'
+		on: menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				// game.state = .main_menu_settings
+				println('Settings not implemented')
+			}
+		}
+	}, menu.ButtonMenuItem{
+		label: 'Quit'
+		on: menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				game.quit()
+			}
+		}
+	})
+	game.main_menu.selected = menu.SelectedMenuItem{
+		text_color: gx.white
+		annotation: ['-', '']!
+	}
+	game.set_text_cfg(size: game.main_menu.font_size)
+	game.main_menu.x = int(f32(game.width) / 2) - game.main_menu.width(mut game.Context) / 2
+	game.main_menu.y = int(f32(game.height) / 2) - game.main_menu.height(mut game.Context) / 2
+
 	mut bg_images := []gg.Image{cap: 3}
 	for i in 0 .. 3 {
 		bg_images << game.create_image_from_byte_array(const_textures['stringstar-fields']['background_${i}'].to_bytes()) or {
@@ -144,6 +180,9 @@ fn event(evt &gg.Event, mut game Game) {
 				}
 			}
 		}
+		.main_menu {
+			game.main_menu.event(evt)
+		}
 	}
 }
 
@@ -167,11 +206,21 @@ fn frame(mut game Game) {
 
 // update handles all the math that goes on in the game.
 fn (mut game Game) update() {
-	if game.state == .paused {
-		return
+	match game.state {
+		.paused { game.update_paused() }
+		.in_game { game.update_in_game() }
+		.main_menu { game.update_main_menu() }
 	}
+}
 
-	// game.camera.x += 150 * game.time.delta
+// update_paused handles the math, logic, events, etc. that go on in the
+// game while the game is in the `paused` state.
+fn (mut game Game) update_paused() {
+}
+
+// update_in_game handles all the math that goes on in the game while
+// the game is in the `in_game` state.
+fn (mut game Game) update_in_game() {
 	if game.pressed_keys[gg.KeyCode.left] {
 		game.character().state = .running
 		game.character().facing = .left
@@ -192,8 +241,43 @@ fn (mut game Game) update() {
 	game.weather.update(mut game)
 }
 
+// update_main_menu handles all the math that goes on in the game while
+// the game is in the `main_menu` state.
+fn (mut game Game) update_main_menu() {
+	game.camera.x += 150 * game.time.delta
+}
+
 // draw renders the game to the screen.
 fn (mut game Game) draw_frame() {
+	match game.state {
+		.paused { game.draw_paused() }
+		.in_game { game.draw_in_game() }
+		.main_menu { game.draw_main_menu() }
+	}
+
+	// draws a vertical and horizontal line through the center of the window.
+	$if lines ? {
+		game.draw_rect_filled(0, game.height / 2 - 1, game.width, 3, gx.white)
+		game.draw_rect_filled(game.width / 2 - 1, 0, 3, game.height, gx.white)
+	}
+}
+
+// draw_paused renders the game to the screen while the game is in the
+// `paused` state.
+fn (mut game Game) draw_paused() {
+	game.draw_in_game()
+	game.draw_rect_filled(0, 0, game.width, game.height, gx.Color{0, 0, 0, 128})
+	game.draw_text(int(game.width / 2), int(game.height / 2), 'Paused',
+		color: gx.white
+		size: 64
+		align: .center
+		vertical_align: .middle
+	)
+}
+
+// draw_in_game renders the game to the screen while the game is in the
+// `in_game` state.
+fn (mut game Game) draw_in_game() {
 	game.draw_background()
 	if game.settings.show_fps {
 		game.draw_text(10, 10, 'FPS ${game.average_fps()}',
@@ -205,16 +289,13 @@ fn (mut game Game) draw_frame() {
 	character.draw(mut game)
 
 	game.weather.draw(mut game)
+}
 
-	if game.state == .paused {
-		game.draw_rect_filled(0, 0, game.width, game.height, gx.Color{0, 0, 0, 128})
-		game.draw_text(int(game.width / 2), int(game.height / 2), 'Paused',
-			color: gx.white
-			size: 64
-			align: .center
-			vertical_align: .middle
-		)
-	}
+// draw_main_menu renders the game to the screen while the game is in the
+// `main_menu` state.
+fn (mut game Game) draw_main_menu() {
+	game.draw_background()
+	game.main_menu.draw(mut game.Context)
 }
 
 // fatal_error prints an error message and quits the game.
