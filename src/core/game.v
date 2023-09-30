@@ -137,7 +137,7 @@ fn init(mut game Game) {
 	game.main_settings_menu = menu.Menu.new(menu.ToggleMenuItem.new('Fullscreen',
 		toggle_on: game.toggle_fullscreen
 		toggle_off: game.toggle_fullscreen
-	), menu.CycleMenuItem.new('FPS', ['30', '60', '90', '120', '144', '165', 'unlimited'],
+	), menu.CycleMenuItem.new('FPS', 1, ['30', '60', '90', '120', '144', '165', 'unlimited'],
 		click: fn [mut game] (value string) {
 			game.settings.fps_cap = if value == 'unlimited' {
 				-1
@@ -208,10 +208,10 @@ fn event(evt &gg.Event, mut game Game) {
 			}
 		}
 		.main_menu {
-			game.main_menu.event(evt)
+			game.main_menu.event(evt, mut game.Context)
 		}
 		.main_menu_settings {
-			game.main_settings_menu.event(evt)
+			game.main_settings_menu.event(evt, mut game.Context)
 		}
 	}
 }

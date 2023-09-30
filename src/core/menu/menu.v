@@ -3,6 +3,7 @@ module menu
 import gg
 import gx
 import math
+import core.util { Easing }
 
 // Menu is the menu that is drawn on the title screen.
 pub struct Menu {
@@ -30,12 +31,14 @@ pub fn (mut menu Menu) center(mut g gg.Context) {
 	menu.y = g.height / 2 - menu.height(mut g) / 2
 }
 
-pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
+// get_item_pos returns the position of the specified menu item.
+pub fn (mut menu Menu) get_item_pos(raw_index int, mut g gg.Context) (int, int) {
 	mut offset_y := 0
+	index := raw_index % menu.menu_items.len
 	for i, mut menu_item in menu.menu_items {
 		match mut menu_item {
 			ButtonMenuItem {
-				if i == menu.selected.index {
+				if i == index {
 					return menu.x + menu_item.padding.left, menu.y + offset_y +
 						menu_item.padding.top
 				}
@@ -43,7 +46,7 @@ pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
 					menu_item.padding.bottom + (menu_item.border.size * 2)
 			}
 			CycleMenuItem {
-				if i == menu.selected.index {
+				if i == index {
 					return menu.x + menu_item.padding.left, menu.y + offset_y +
 						menu_item.padding.top
 				}
@@ -51,7 +54,7 @@ pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
 					menu_item.padding.bottom
 			}
 			ToggleMenuItem {
-				if i == menu.selected.index {
+				if i == index {
 					return menu.x + menu_item.padding.left, menu.y + offset_y +
 						menu_item.padding.top
 				}
@@ -63,11 +66,15 @@ pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
 	return -1, -1
 }
 
+// get_current_item_pos returns the position of the currently selected item.
+[inline]
+pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
+	return menu.get_item_pos(menu.selected.index, mut g)
+}
+
 // update updates the menu.
 pub fn (mut menu Menu) update(mut g gg.Context) {
 	current_item_x, current_item_y := menu.get_current_item_pos(mut g)
-	// this .str becomes nil when switch game states
-	println(voidptr(menu.selected.annotation[0].str))
 	menu.selected.target_x = current_item_x - menu.selected.margin - g.text_width(menu.selected.annotation[0])
 	menu.selected.target_y = current_item_y
 
@@ -75,15 +82,27 @@ pub fn (mut menu Menu) update(mut g gg.Context) {
 }
 
 // event handles events for the menu.
-pub fn (mut menu Menu) event(event &gg.Event) {
+pub fn (mut menu Menu) event(event &gg.Event, mut g gg.Context) {
 	match event.typ {
 		.key_down {
 			match event.key_code {
 				.up {
-					menu.selected.index = (menu.selected.index - 1) % menu.menu_items.len
+					menu.selected.start_x, menu.selected.start_y = menu.get_current_item_pos(mut g)
+					menu.selected.index += if menu.selected.index - 1 >= 0 {
+						-1
+					} else {
+						menu.menu_items.len - 1
+					}
+					menu.selected.target_x, menu.selected.target_y = menu.get_current_item_pos(mut g)
 				}
 				.down {
-					menu.selected.index = (menu.selected.index + 1) % menu.menu_items.len
+					menu.selected.start_x, menu.selected.start_y = menu.get_current_item_pos(mut g)
+					menu.selected.index += if menu.selected.index + 1 < menu.menu_items.len {
+						1
+					} else {
+						-menu.menu_items.len + 1
+					}
+					menu.selected.target_x, menu.selected.target_y = menu.get_current_item_pos(mut g)
 				}
 				.left {
 					mut menu_item := menu.menu_items[menu.selected.index]
@@ -239,7 +258,7 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 					g.draw_rounded_rect_empty(border_x, border_y, border_width, border_height,
 						menu_item.border.radius, menu_item.border.color)
 				}
-				// menu.selected.draw(mut g, menu.font_size)
+				menu.selected.draw(mut g, menu.font_size)
 			}
 			CycleMenuItem {
 				local_offset_x := menu_item.padding.left
@@ -315,14 +334,25 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 // Cursor is the cursor that is drawn on the title screen.
 pub struct Cursor {
 mut:
-	x          int
-	y          int
-	target_x   int
-	target_y   int
+	// current position
+	x f32
+	y f32
+	// animation start position
+	start_x int
+	start_y int
+	// animation end position
+	target_x int
+	target_y int
+	// animation progress
+	percent_y f32
+	percent_x f32
+	// current item index in the parent menu
 	index      int
 	text_color gx.Color = gx.white
-	margin     int      = 10
-	speed      int      = 20
+	// margin is the distance between the cursor and the menu item.
+	margin int = 10
+	// speed is the speed at which the cursor moves.
+	speed int = 10
 	// annotation is the character used to denote the selected item.
 	/**
 	 * example if annotation[0] is '>'
@@ -334,25 +364,30 @@ mut:
 	 *     selected
 	 *     unselected
 	**/
-	annotation [2]string
+	annotation [2]string = [2]string{}
 }
 
 // update updates the cursor position.
 pub fn (mut selected Cursor) update() {
-	if math.abs(selected.target_x - selected.x) > selected.speed {
+	selected.percent_y = math.abs(f32(selected.y - selected.start_y)) / math.abs(f32(selected.target_y - selected.start_y))
+	selected.percent_x = math.abs(f32(selected.x - selected.start_x)) / math.abs(f32(selected.target_x - selected.start_x))
+	// ease in
+	relative_speed_y := selected.speed * Easing.ease_out_cubic(selected.percent_y) + 0.5
+	relative_speed_x := selected.speed * Easing.ease_out_cubic(selected.percent_x) + 0.5
+	if math.abs(selected.target_x - selected.x) > relative_speed_x {
 		if selected.target_x > selected.x {
-			selected.x += selected.speed
+			selected.x += relative_speed_x
 		} else {
-			selected.x -= selected.speed
+			selected.x -= relative_speed_x
 		}
 	} else {
 		selected.x = selected.target_x
 	}
-	if math.abs(selected.target_y - selected.y) > selected.speed {
+	if math.abs(selected.target_y - selected.y) > relative_speed_y {
 		if selected.target_y > selected.y {
-			selected.y += selected.speed
+			selected.y += relative_speed_y
 		} else {
-			selected.y -= selected.speed
+			selected.y -= relative_speed_y
 		}
 	} else {
 		selected.y = selected.target_y
@@ -361,12 +396,12 @@ pub fn (mut selected Cursor) update() {
 
 // draw draws the cursor to the screen.
 pub fn (mut selected Cursor) draw(mut g gg.Context, font_size int) {
-	g.draw_text(selected.x, selected.y, selected.annotation[0],
+	g.draw_text(int(selected.x), int(selected.y), selected.annotation[0],
 		size: font_size
 		color: selected.text_color
 	)
-	g.draw_text(selected.x + g.text_width(selected.annotation[0]) + selected.margin, selected.y,
-		selected.annotation[1],
+	g.draw_text(int(selected.x) + g.text_width(selected.annotation[0]) + selected.margin,
+		int(selected.y), selected.annotation[1],
 		size: font_size
 		color: selected.text_color
 	)

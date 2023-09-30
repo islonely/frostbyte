@@ -65,11 +65,13 @@ __global:
 // CycleMenuItem.new creates a new `CycleMenuItem` with the given label, values,
 // and function to invoke when the item is selected.
 [inline]
-pub fn CycleMenuItem.new(label string, values []string, events CycleMenuItemEvents) CycleMenuItem {
+pub fn CycleMenuItem.new(label string, start_value int, values []string, events CycleMenuItemEvents) CycleMenuItem {
 	return CycleMenuItem{
 		label: label
 		values: values
 		on: events
+		selected_value: start_value % values.len
+		current_value: start_value % values.len
 		padding: Padding.new(0)
 	}
 }
