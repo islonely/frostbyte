@@ -2,6 +2,7 @@ module menu
 
 import gg
 import gx
+import math
 
 // Menu is the menu that is drawn on the title screen.
 pub struct Menu {
@@ -10,7 +11,7 @@ __global:
 	y              int
 	menu_items     []MenuItem
 	text_alignment TextAlignment
-	selected       SelectedMenuItem
+	selected       Cursor
 	text_color     gx.Color = gx.rgb(0xba, 0xba, 0xba)
 	font_size      int      = 40
 }
@@ -27,6 +28,50 @@ pub fn Menu.new(menu_items ...MenuItem) Menu {
 pub fn (mut menu Menu) center(mut g gg.Context) {
 	menu.x = g.width / 2 - menu.width(mut g) / 2
 	menu.y = g.height / 2 - menu.height(mut g) / 2
+}
+
+pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
+	mut offset_y := 0
+	for i, mut menu_item in menu.menu_items {
+		match mut menu_item {
+			ButtonMenuItem {
+				if i == menu.selected.index {
+					return menu.x + menu_item.padding.left, menu.y + offset_y +
+						menu_item.padding.top
+				}
+				offset_y += g.text_height(menu_item.label) + menu_item.padding.top +
+					menu_item.padding.bottom + (menu_item.border.size * 2)
+			}
+			CycleMenuItem {
+				if i == menu.selected.index {
+					return menu.x + menu_item.padding.left, menu.y + offset_y +
+						menu_item.padding.top
+				}
+				offset_y += g.text_height(menu_item.label) + menu_item.padding.top +
+					menu_item.padding.bottom
+			}
+			ToggleMenuItem {
+				if i == menu.selected.index {
+					return menu.x + menu_item.padding.left, menu.y + offset_y +
+						menu_item.padding.top
+				}
+				offset_y += g.text_height(menu_item.text()) + menu_item.padding.top +
+					menu_item.padding.bottom
+			}
+		}
+	}
+	return -1, -1
+}
+
+// update updates the menu.
+pub fn (mut menu Menu) update(mut g gg.Context) {
+	current_item_x, current_item_y := menu.get_current_item_pos(mut g)
+	// this .str becomes nil when switch game states
+	println(voidptr(menu.selected.annotation[0].str))
+	menu.selected.target_x = current_item_x - menu.selected.margin - g.text_width(menu.selected.annotation[0])
+	menu.selected.target_y = current_item_y
+
+	menu.selected.update()
 }
 
 // event handles events for the menu.
@@ -194,22 +239,7 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 					g.draw_rounded_rect_empty(border_x, border_y, border_width, border_height,
 						menu_item.border.radius, menu_item.border.color)
 				}
-				annotation_margin := 10
-				if menu.selected.annotation[0].len > 0 && is_selected_item {
-					annotation_width := g.text_width(menu.selected.annotation[0])
-					g.draw_text(border_x - annotation_margin - annotation_width, border_y +
-						local_offset_y, menu.selected.annotation[0],
-						size: menu.font_size
-						color: menu.selected.text_color
-					)
-				}
-				if menu.selected.annotation[1].len > 0 && is_selected_item {
-					g.draw_text(border_x + border_width + annotation_margin, border_y +
-						local_offset_y, menu.selected.annotation[1],
-						size: menu.font_size
-						color: menu.selected.text_color
-					)
-				}
+				// menu.selected.draw(mut g, menu.font_size)
 			}
 			CycleMenuItem {
 				local_offset_x := menu_item.padding.left
@@ -282,12 +312,17 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 	}
 }
 
-// todo: replace with anonymous struct.
-// vfmt currently has a bug that prevents this.
-pub struct SelectedMenuItem {
+// Cursor is the cursor that is drawn on the title screen.
+pub struct Cursor {
 mut:
+	x          int
+	y          int
+	target_x   int
+	target_y   int
 	index      int
 	text_color gx.Color = gx.white
+	margin     int      = 10
+	speed      int      = 20
 	// annotation is the character used to denote the selected item.
 	/**
 	 * example if annotation[0] is '>'
@@ -300,6 +335,41 @@ mut:
 	 *     unselected
 	**/
 	annotation [2]string
+}
+
+// update updates the cursor position.
+pub fn (mut selected Cursor) update() {
+	if math.abs(selected.target_x - selected.x) > selected.speed {
+		if selected.target_x > selected.x {
+			selected.x += selected.speed
+		} else {
+			selected.x -= selected.speed
+		}
+	} else {
+		selected.x = selected.target_x
+	}
+	if math.abs(selected.target_y - selected.y) > selected.speed {
+		if selected.target_y > selected.y {
+			selected.y += selected.speed
+		} else {
+			selected.y -= selected.speed
+		}
+	} else {
+		selected.y = selected.target_y
+	}
+}
+
+// draw draws the cursor to the screen.
+pub fn (mut selected Cursor) draw(mut g gg.Context, font_size int) {
+	g.draw_text(selected.x, selected.y, selected.annotation[0],
+		size: font_size
+		color: selected.text_color
+	)
+	g.draw_text(selected.x + g.text_width(selected.annotation[0]) + selected.margin, selected.y,
+		selected.annotation[1],
+		size: font_size
+		color: selected.text_color
+	)
 }
 
 // TextAlignment is the alignment of the text.

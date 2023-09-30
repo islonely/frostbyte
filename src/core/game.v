@@ -126,7 +126,7 @@ fn init(mut game Game) {
 			}
 		}
 	})
-	game.main_menu.selected = menu.SelectedMenuItem{
+	game.main_menu.selected = menu.Cursor{
 		text_color: gx.white
 		annotation: ['-', '']!
 	}
@@ -290,12 +290,14 @@ fn (mut game Game) update_in_game() {
 // the game is in the `main_menu` state.
 fn (mut game Game) update_main_menu() {
 	game.camera.x += 150 * game.time.delta
+	game.main_menu.update(mut game.Context)
 }
 
 // update_main_menu_settings handles all the math that goes on in the game
 // while the game is in the `main_menu_settings` state.
 fn (mut game Game) update_main_menu_settings() {
 	game.update_main_menu()
+	game.main_settings_menu.update(mut game.Context)
 }
 
 // draw renders the game to the screen.
