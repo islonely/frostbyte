@@ -3,8 +3,8 @@ module menu
 import gg
 import gx
 
-// MainMenu is the menu that is drawn on the title screen.
-pub struct MainMenu {
+// Menu is the menu that is drawn on the title screen.
+pub struct Menu {
 __global:
 	x              int
 	y              int
@@ -15,16 +15,22 @@ __global:
 	font_size      int      = 40
 }
 
-// MainMenu.new creates a new `MainMenu` at the given position with the given menu items.
+// Menu.new creates a new `Menu` at the given position with the given menu items.
 [inline]
-pub fn MainMenu.new(menu_items ...MenuItem) MainMenu {
-	return MainMenu{
+pub fn Menu.new(menu_items ...MenuItem) Menu {
+	return Menu{
 		menu_items: menu_items
 	}
 }
 
+// center centers the menu relative to the window size.
+pub fn (mut menu Menu) center(mut g gg.Context) {
+	menu.x = g.width / 2 - menu.width(mut g) / 2
+	menu.y = g.height / 2 - menu.height(mut g) / 2
+}
+
 // event handles events for the menu.
-pub fn (mut menu MainMenu) event(event &gg.Event) {
+pub fn (mut menu Menu) event(event &gg.Event) {
 	match event.typ {
 		.key_down {
 			match event.key_code {
@@ -47,6 +53,22 @@ pub fn (mut menu MainMenu) event(event &gg.Event) {
 								click_fn(menu_item.value())
 							}
 						}
+						ToggleMenuItem {
+							menu_item.toggled_on = !menu_item.toggled_on
+							if toggle_fn := menu_item.on.toggle {
+								toggle_fn(menu_item.toggled_on)
+							} else {
+								if menu_item.toggled_on {
+									if toggle_on_fn := menu_item.on.toggle_on {
+										toggle_on_fn()
+									}
+								} else {
+									if toggle_off_fn := menu_item.on.toggle_off {
+										toggle_off_fn()
+									}
+								}
+							}
+						}
 					}
 				}
 				else {}
@@ -58,12 +80,12 @@ pub fn (mut menu MainMenu) event(event &gg.Event) {
 
 // current_item returns the currently selected menu item.
 [inline]
-pub fn (mut menu MainMenu) current_item() MenuItem {
+pub fn (mut menu Menu) current_item() MenuItem {
 	return menu.menu_items[menu.selected.index]
 }
 
 // width returns the width of the menu.
-pub fn (mut menu MainMenu) width(mut g gg.Context) int {
+pub fn (mut menu Menu) width(mut g gg.Context) int {
 	mut max_width := 0
 	for mut menu_item in menu.menu_items {
 		match mut menu_item {
@@ -83,13 +105,20 @@ pub fn (mut menu MainMenu) width(mut g gg.Context) int {
 					max_width = width
 				}
 			}
+			ToggleMenuItem {
+				width := g.text_width(menu_item.text()) + menu_item.padding.left +
+					menu_item.padding.right
+				if width > max_width {
+					max_width = width
+				}
+			}
 		}
 	}
 	return max_width
 }
 
 // height returns the height of the menu.
-pub fn (mut menu MainMenu) height(mut g gg.Context) int {
+pub fn (mut menu Menu) height(mut g gg.Context) int {
 	mut height := 0
 	for mut menu_item in menu.menu_items {
 		match mut menu_item {
@@ -101,6 +130,10 @@ pub fn (mut menu MainMenu) height(mut g gg.Context) int {
 				height += g.text_height(menu_item.label) + menu_item.padding.top +
 					menu_item.padding.bottom
 			}
+			ToggleMenuItem {
+				height += g.text_height(menu_item.text()) + menu_item.padding.top +
+					menu_item.padding.bottom
+			}
 		}
 	}
 	return height
@@ -108,7 +141,7 @@ pub fn (mut menu MainMenu) height(mut g gg.Context) int {
 
 // draw draws the menu to the screen.
 [direct_array_access]
-pub fn (mut menu MainMenu) draw(mut g gg.Context) {
+pub fn (mut menu Menu) draw(mut g gg.Context) {
 	mut offset_y := 0
 	for i, mut menu_item in menu.menu_items {
 		is_selected_item := i == menu.selected.index
@@ -155,9 +188,29 @@ pub fn (mut menu MainMenu) draw(mut g gg.Context) {
 					)
 				}
 			}
+			ToggleMenuItem {
+				border_x := menu.x
+				border_y := menu.y + offset_y
+				local_offset_x := menu_item.padding.left + menu_item.border.size
+				local_offset_y := menu_item.padding.top + menu_item.border.size
+				toggler_x := menu.x + local_offset_x
+				toggler_y := menu.y + offset_y + local_offset_y
+				border_width := g.text_width(menu_item.text()) + menu_item.padding.left +
+					menu_item.padding.right + (menu_item.border.size * 2)
+				border_height := g.text_height(menu_item.text()) + menu_item.padding.top +
+					menu_item.padding.bottom + (menu_item.border.size * 2)
+				offset_y += border_height
+				g.draw_text(toggler_x, toggler_y, menu_item.text(),
+					size: menu.font_size
+					color: menu_item_color
+				)
+				if menu_item.border.size > 0 {
+					g.draw_rounded_rect_empty(border_x, border_y, border_width, border_height,
+						menu_item.border.radius, menu_item.border.color)
+				}
+			}
 			else {
-				println('notice: MainMenu has not implemented MenuItem type: ' +
-					menu_item.type_name())
+				println('notice: Menu has not implemented MenuItem type: ' + menu_item.type_name())
 			}
 		}
 	}
@@ -168,7 +221,7 @@ pub fn (mut menu MainMenu) draw(mut g gg.Context) {
 pub struct SelectedMenuItem {
 mut:
 	index      int
-	text_color gx.Color
+	text_color gx.Color = gx.white
 	// annotation is the character used to denote the selected item.
 	/**
 	 * example if annotation[0] is '>'

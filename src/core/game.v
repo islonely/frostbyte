@@ -19,6 +19,7 @@ enum GameState {
 	in_game
 	paused
 	main_menu
+	main_menu_settings
 }
 
 // Game is the primary game object.
@@ -46,7 +47,11 @@ pub mut:
 	}
 
 	settings struct {
-		fps_cap  ?int = 60
+	pub mut:
+		fullscreen bool
+		// todo: change this to ?int. V bug
+		// currently not allowing it.
+		fps_cap  int  = 60
 		show_fps bool = $if debug {
 			true
 		} $else {
@@ -61,7 +66,8 @@ pub mut:
 		selected  int
 	}
 
-	main_menu menu.MainMenu
+	main_menu          menu.Menu
+	main_settings_menu menu.Menu
 }
 
 // Game.new instantiates a new `Game` object.
@@ -96,7 +102,8 @@ fn (game Game) average_fps() int {
 
 // init is called once before the game is first started.
 fn init(mut game Game) {
-	game.main_menu = menu.MainMenu.new(menu.ButtonMenuItem{
+	// main menu
+	game.main_menu = menu.Menu.new(menu.ButtonMenuItem{
 		label: 'Play'
 		on: menu.ButtonMenuItemEvents{
 			click: fn [mut game] () {
@@ -108,8 +115,7 @@ fn init(mut game Game) {
 		label: 'Settings'
 		on: menu.ButtonMenuItemEvents{
 			click: fn [mut game] () {
-				// game.state = .main_menu_settings
-				println('Settings not implemented')
+				game.state = .main_menu_settings
 			}
 		}
 	}, menu.ButtonMenuItem{
@@ -125,9 +131,31 @@ fn init(mut game Game) {
 		annotation: ['-', '']!
 	}
 	game.set_text_cfg(size: game.main_menu.font_size)
-	game.main_menu.x = int(f32(game.width) / 2) - game.main_menu.width(mut game.Context) / 2
-	game.main_menu.y = int(f32(game.height) / 2) - game.main_menu.height(mut game.Context) / 2
+	game.main_menu.center(mut game.Context)
 
+	// main menu settings
+	game.main_settings_menu = menu.Menu.new(menu.ToggleMenuItem.new('Fullscreen',
+		toggle_on: game.toggle_fullscreen
+		toggle_off: game.toggle_fullscreen
+	), menu.CycleMenuItem.new('FPS', ['30', '60', '90', '120', '144', '165', 'unlimited'],
+		click: fn [mut game] (value string) {
+			game.settings.fps_cap = if value == 'unlimited' {
+				-1
+			} else {
+				value.int()
+			}
+		}
+	), menu.ButtonMenuItem{
+		label: 'Back'
+		on: menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				game.state = .main_menu
+			}
+		}
+	})
+	game.main_settings_menu.center(mut game.Context)
+
+	// init background images
 	mut bg_images := []gg.Image{cap: 3}
 	for i in 0 .. 3 {
 		bg_images << game.create_image_from_byte_array(const_textures['stringstar-fields']['background_${i}'].to_bytes()) or {
@@ -141,10 +169,13 @@ fn init(mut game Game) {
 		exit(1)
 	}
 
+	// weather
 	game.weather = Weather{
 		// precipitation: Precipitation.new(.rain, 50.0, int(f32(game.height) * 0.5), game)
 		precipitation: Precipitation.new(.snow, 30.0, int(f32(game.height) * 0.33), game)
 	}
+
+	// characters
 	init_characters(mut game) or { game.fatal_error('Failed to load characters: ${err.msg()}') }
 
 	spawn game.debug()
@@ -153,11 +184,7 @@ fn init(mut game Game) {
 // event is called every time an event is received.
 fn event(evt &gg.Event, mut game Game) {
 	if evt.typ == .resized {
-		game.width, game.height = evt.window_width, evt.window_height
-		if precipitation := game.weather.precipitation {
-			game.weather.precipitation = Precipitation.new(precipitation.typ, precipitation.fall_speed,
-				int(f32(game.height) * 0.5), game)
-		}
+		game.on_resize()
 		return
 	}
 
@@ -183,7 +210,24 @@ fn event(evt &gg.Event, mut game Game) {
 		.main_menu {
 			game.main_menu.event(evt)
 		}
+		.main_menu_settings {
+			game.main_settings_menu.event(evt)
+		}
 	}
+}
+
+// on_resize is called every time the window is resized. It scales the
+// game's camera to fit the new window size.
+fn (mut game Game) on_resize() {
+	windown_size := if game.settings.fullscreen {
+		gg.screen_size()
+	} else {
+		gg.window_size()
+	}
+	game.width = windown_size.width
+	game.height = windown_size.height
+	game.main_menu.center(mut game.Context)
+	game.main_settings_menu.center(mut game.Context)
 }
 
 // frame is called every time a frame is rendered.
@@ -197,8 +241,8 @@ fn frame(mut game Game) {
 	game.time.fps = 1.0 / game.time.delta
 	arrays.rotate_right(mut game.time.fps_buffer, 1)
 	game.time.fps_buffer[0] = game.time.fps
-	if fps_cap := game.settings.fps_cap {
-		time.sleep(time.second / fps_cap)
+	if game.settings.fps_cap != -1 {
+		time.sleep(time.second / game.settings.fps_cap)
 	}
 	game.frame_count++
 	game.time.delta = f32(game.time.stopwatch.elapsed().seconds())
@@ -210,6 +254,7 @@ fn (mut game Game) update() {
 		.paused { game.update_paused() }
 		.in_game { game.update_in_game() }
 		.main_menu { game.update_main_menu() }
+		.main_menu_settings { game.update_main_menu_settings() }
 	}
 }
 
@@ -247,12 +292,19 @@ fn (mut game Game) update_main_menu() {
 	game.camera.x += 150 * game.time.delta
 }
 
+// update_main_menu_settings handles all the math that goes on in the game
+// while the game is in the `main_menu_settings` state.
+fn (mut game Game) update_main_menu_settings() {
+	game.update_main_menu()
+}
+
 // draw renders the game to the screen.
 fn (mut game Game) draw_frame() {
 	match game.state {
 		.paused { game.draw_paused() }
 		.in_game { game.draw_in_game() }
 		.main_menu { game.draw_main_menu() }
+		.main_menu_settings { game.draw_main_menu_settings() }
 	}
 
 	// draws a vertical and horizontal line through the center of the window.
@@ -266,7 +318,7 @@ fn (mut game Game) draw_frame() {
 // `paused` state.
 fn (mut game Game) draw_paused() {
 	game.draw_in_game()
-	game.draw_rect_filled(0, 0, game.width, game.height, gx.Color{0, 0, 0, 128})
+	game.draw_overlay()
 	game.draw_text(int(game.width / 2), int(game.height / 2), 'Paused',
 		color: gx.white
 		size: 64
@@ -296,6 +348,20 @@ fn (mut game Game) draw_in_game() {
 fn (mut game Game) draw_main_menu() {
 	game.draw_background()
 	game.main_menu.draw(mut game.Context)
+}
+
+// draw_main_menu_settings renders the game to the screen while the game is
+// in the `main_menu_settings` state.
+fn (mut game Game) draw_main_menu_settings() {
+	game.draw_background()
+	game.draw_overlay()
+	game.main_settings_menu.draw(mut game.Context)
+}
+
+// draw_overlay draws a semi-transparent black overlay over the screen.
+[inline]
+fn (mut game Game) draw_overlay() {
+	game.draw_rect_filled(0, 0, game.width, game.height, gx.Color{0, 0, 0, 128})
 }
 
 // fatal_error prints an error message and quits the game.
@@ -331,6 +397,14 @@ fn (mut game Game) draw_background() {
 		game.draw_image(x - game.width, y, game.width, game.height, bg_texture)
 		game.draw_image(x + game.width, y, game.width, game.height, bg_texture)
 	}
+}
+
+// toggle_fullscreen toggles the game's fullscreen state and resizes the
+// game accordingly.
+fn (mut game Game) toggle_fullscreen() {
+	gg.toggle_fullscreen()
+	game.settings.fullscreen = !game.settings.fullscreen
+	game.on_resize()
 }
 
 // draw_2d draws a 2D drawable object to the screen relative to the camera.
