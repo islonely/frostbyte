@@ -11,7 +11,7 @@ __global:
 	menu_items     []MenuItem
 	text_alignment TextAlignment
 	selected       SelectedMenuItem
-	text_color     gx.Color = gx.rgb(0xda, 0xda, 0xda)
+	text_color     gx.Color = gx.rgb(0xba, 0xba, 0xba)
 	font_size      int      = 40
 }
 
@@ -40,6 +40,28 @@ pub fn (mut menu Menu) event(event &gg.Event) {
 				.down {
 					menu.selected.index = (menu.selected.index + 1) % menu.menu_items.len
 				}
+				.left {
+					mut menu_item := menu.menu_items[menu.selected.index]
+					match mut menu_item {
+						CycleMenuItem {
+							if menu_item.selected_value > 0 {
+								menu_item.cycle_left()
+							}
+						}
+						else {}
+					}
+				}
+				.right {
+					mut menu_item := menu.menu_items[menu.selected.index]
+					match mut menu_item {
+						CycleMenuItem {
+							if menu_item.selected_value < menu_item.values.len - 1 {
+								menu_item.cycle_right()
+							}
+						}
+						else {}
+					}
+				}
 				.enter {
 					mut menu_item := menu.menu_items[menu.selected.index]
 					match mut menu_item {
@@ -49,6 +71,7 @@ pub fn (mut menu Menu) event(event &gg.Event) {
 							}
 						}
 						CycleMenuItem {
+							menu_item.current_value = menu_item.selected_value
 							if click_fn := menu_item.on.click {
 								click_fn(menu_item.value())
 							}
@@ -188,6 +211,52 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 					)
 				}
 			}
+			CycleMenuItem {
+				local_offset_x := menu_item.padding.left
+				local_offset_y := menu_item.padding.top
+				cycle_x := menu.x + local_offset_x
+				cycle_y := menu.y + offset_y + local_offset_y
+				offset_y += g.text_height(menu_item.label) + menu_item.padding.top +
+					menu_item.padding.bottom
+
+				value_color := if menu_item.selected_value == menu_item.current_value {
+					menu.text_color
+				} else {
+					gx.rgb(0xca, 0x33, 0x5a)
+				}
+				label := '${menu_item.label}: '
+				cycle_left := '< '
+				cycle_right := ' >'
+				value := menu_item.value()
+				is_first_item := menu_item.selected_value == 0
+				is_last_item := menu_item.selected_value == menu_item.values.len - 1
+				g.draw_text(cycle_x, cycle_y, label,
+					size: menu.font_size
+					color: menu_item_color
+				)
+				g.draw_text(cycle_x + g.text_width(label), cycle_y, cycle_left,
+					size: menu.font_size
+					color: if is_first_item {
+						menu.text_color
+					} else {
+						menu.selected.text_color
+					}
+				)
+				g.draw_text(cycle_x + g.text_width(label) + g.text_width(cycle_left),
+					cycle_y, value,
+					size: menu.font_size
+					color: value_color
+				)
+				g.draw_text(cycle_x + g.text_width(label) + g.text_width(cycle_left) +
+					g.text_width(value), cycle_y, cycle_right,
+					size: menu.font_size
+					color: if is_last_item {
+						menu.text_color
+					} else {
+						menu.selected.text_color
+					}
+				)
+			}
 			ToggleMenuItem {
 				border_x := menu.x
 				border_y := menu.y + offset_y
@@ -208,9 +277,6 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 					g.draw_rounded_rect_empty(border_x, border_y, border_width, border_height,
 						menu_item.border.radius, menu_item.border.color)
 				}
-			}
-			else {
-				println('notice: Menu has not implemented MenuItem type: ' + menu_item.type_name())
 			}
 		}
 	}
