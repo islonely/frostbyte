@@ -279,7 +279,7 @@ fn (mut game Game) update_in_game() {
 			game.camera.x += game.character().run_speed * game.time.delta
 		}
 	}
-	game.characters.available[game.characters.selected].update()
+	game.characters.available[game.characters.selected].update(game.time.delta)
 
 	game.weather.update(mut game)
 }

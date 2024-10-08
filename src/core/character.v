@@ -108,9 +108,16 @@ pub mut:
 	x         f32
 	y         f32
 	z         f32
+	velocity  struct {
+	pub mut:
+		x f32
+		y f32
+		z f32
+	}
 	width     f32
 	height    f32
 	run_speed f32            = 300
+	gravity   f32            = 30
 	state     CharacterState = .idle
 	// todo: make this map[string]Sprites so that modders can add new states.
 	sprites        map[CharacterState]Sprites
@@ -119,8 +126,13 @@ pub mut:
 	anim_stopwatch time.StopWatch = time.new_stopwatch(auto_start: true)
 }
 
-// update progresses the character's animation based on its current state.
-pub fn (mut character Character) update() {
+// update handles the logic of the character.
+pub fn (mut character Character) update(delta f32) {
+	character.velocity.y += character.gravity * delta
+	character.y += character.velocity.y
+	character.x += character.velocity.x
+	character.z += character.velocity.z
+
 	dur := character.sprites[character.state].frame_duration or {
 		time.millisecond * 700 / character.sprites[character.state].rects.len
 	}
