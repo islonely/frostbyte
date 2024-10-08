@@ -9,13 +9,13 @@ pub mut:
 }
 
 // Coords.new instantiates a new Coords struct.
-[inline]
+@[inline]
 fn Coords.new() Coords {
 	return Coords{0, 0, 0}
 }
 
 // str returns a string representation of the Coords struct.
-[inline]
+@[inline]
 pub fn (c Coords) str() string {
 	return 'X:${c.x} Y:${c.y} Z:${c.z}'
 }

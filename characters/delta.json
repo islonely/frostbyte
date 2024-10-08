@@ -1,7 +1,8 @@
 {
     "name": "Delta",
-    "width": 76,
-    "height": 128,
+    "width": 49,
+    "height": 83,
+    "speed": 300,
     "sprites": {
         "idle": {
             "sprite-sheet-path": "../src/assets/delta.png",

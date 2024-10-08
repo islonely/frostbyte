@@ -11,10 +11,10 @@ pub mut:
 }
 
 // Background.new instantiates a new Background.
-[inline]
+@[inline]
 pub fn Background.new(coords Coords, textures ...gg.Image) Background {
 	return Background{
-		Coords: coords
+		Coords:   coords
 		textures: textures
 	}
 }

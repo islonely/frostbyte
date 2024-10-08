@@ -12,16 +12,16 @@ pub mut:
 }
 
 // Weather.new creates a new Weather.
-[inline]
+@[inline]
 pub fn Weather.new() Weather {
 	return Weather{
 		precipitation: none
-		wind_speed: 0.0
+		wind_speed:    0.0
 	}
 }
 
 // update updates the position of weather particles.
-[direct_array_access]
+@[direct_array_access]
 fn (mut weather Weather) update(mut game Game) {
 	if mut precipitation := weather.precipitation {
 		match precipitation.typ {
@@ -66,7 +66,7 @@ fn (mut weather Weather) update(mut game Game) {
 }
 
 // draw draws the weather to the screen.
-[direct_array_access]
+@[direct_array_access]
 fn (weather Weather) draw(mut game Game) {
 	if mut precipitation := weather.precipitation {
 		match precipitation.typ {
@@ -138,12 +138,12 @@ pub mut:
 }
 
 // Precipitation.new creates a new Precipitation.
-[inline]
+@[inline]
 pub fn Precipitation.new(typ PrecipitationType, fall_speed f32, particle_count int, game Game) &Precipitation {
 	mut prec := &Precipitation{
 		typ: typ
 		// Assumes a screen height of 1080p.
-		particles: []PrecipitationParticle{cap: particle_count}
+		particles:  []PrecipitationParticle{cap: particle_count}
 		fall_speed: fall_speed
 	}
 
@@ -159,10 +159,10 @@ pub fn Precipitation.new(typ PrecipitationType, fall_speed f32, particle_count i
 				percent_size := math.max(size / 6.0, 0.7)
 				fs := percent_size * fall_speed * 1.5
 				PrecipitationParticle{
-					size: size
+					size:       size
 					fall_speed: fs
-					color: clr
-					Coords: Coords{
+					color:      clr
+					Coords:     Coords{
 						x: rand.f32_in_range(game.camera.x, game.camera.x + game.width) or {
 							eprintln('error: failed to create precipitation particle. ${err.msg()}')
 							exit(1)
@@ -178,8 +178,8 @@ pub fn Precipitation.new(typ PrecipitationType, fall_speed f32, particle_count i
 			else {
 				PrecipitationParticle{
 					fall_speed: fall_speed
-					color: precipitation_type_to_color(typ)
-					Coords: Coords{
+					color:      precipitation_type_to_color(typ)
+					Coords:     Coords{
 						x: rand.f32_in_range(game.camera.x, game.camera.x + game.width) or {
 							eprintln('error: failed to create precipitation particle. ${err.msg()}')
 							exit(1)

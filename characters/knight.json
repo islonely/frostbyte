@@ -1,7 +1,8 @@
 {
     "name": "Knight",
-    "width": 200,
-    "height": 128,
+    "width": 130,
+    "height": 83,
+    "speed": 300,
     "sprites": {
         "idle": {
             "sprite-sheet-path": "../src/assets/Knight_player/Idle_KG_1.png",

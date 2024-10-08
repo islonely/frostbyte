@@ -18,7 +18,7 @@ __global:
 }
 
 // Menu.new creates a new `Menu` at the given position with the given menu items.
-[inline]
+@[inline]
 pub fn Menu.new(menu_items ...MenuItem) Menu {
 	return Menu{
 		menu_items: menu_items
@@ -67,7 +67,7 @@ pub fn (mut menu Menu) get_item_pos(raw_index int, mut g gg.Context) (int, int) 
 }
 
 // get_current_item_pos returns the position of the currently selected item.
-[inline]
+@[inline]
 pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
 	return menu.get_item_pos(menu.selected.index, mut g)
 }
@@ -166,7 +166,7 @@ pub fn (mut menu Menu) event(event &gg.Event, mut g gg.Context) {
 }
 
 // current_item returns the currently selected menu item.
-[inline]
+@[inline]
 pub fn (mut menu Menu) current_item() MenuItem {
 	return menu.menu_items[menu.selected.index]
 }
@@ -227,7 +227,7 @@ pub fn (mut menu Menu) height(mut g gg.Context) int {
 }
 
 // draw draws the menu to the screen.
-[direct_array_access]
+@[direct_array_access]
 pub fn (mut menu Menu) draw(mut g gg.Context) {
 	mut offset_y := 0
 	for i, mut menu_item in menu.menu_items {
@@ -251,7 +251,7 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 					menu_item.padding.bottom + (menu_item.border.size * 2)
 				offset_y += border_height
 				g.draw_text(button_x, button_y, menu_item.label,
-					size: menu.font_size
+					size:  menu.font_size
 					color: menu_item_color
 				)
 				if menu_item.border.size > 0 {
@@ -280,11 +280,11 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 				is_first_item := menu_item.selected_value == 0
 				is_last_item := menu_item.selected_value == menu_item.values.len - 1
 				g.draw_text(cycle_x, cycle_y, label,
-					size: menu.font_size
+					size:  menu.font_size
 					color: menu_item_color
 				)
 				g.draw_text(cycle_x + g.text_width(label), cycle_y, cycle_left,
-					size: menu.font_size
+					size:  menu.font_size
 					color: if is_first_item {
 						menu.text_color
 					} else {
@@ -293,12 +293,12 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 				)
 				g.draw_text(cycle_x + g.text_width(label) + g.text_width(cycle_left),
 					cycle_y, value,
-					size: menu.font_size
+					size:  menu.font_size
 					color: value_color
 				)
 				g.draw_text(cycle_x + g.text_width(label) + g.text_width(cycle_left) +
 					g.text_width(value), cycle_y, cycle_right,
-					size: menu.font_size
+					size:  menu.font_size
 					color: if is_last_item {
 						menu.text_color
 					} else {
@@ -319,7 +319,7 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 					menu_item.padding.bottom + (menu_item.border.size * 2)
 				offset_y += border_height
 				g.draw_text(toggler_x, toggler_y, menu_item.text(),
-					size: menu.font_size
+					size:  menu.font_size
 					color: menu_item_color
 				)
 				if menu_item.border.size > 0 {
@@ -333,7 +333,7 @@ pub fn (mut menu Menu) draw(mut g gg.Context) {
 
 // Cursor is the cursor that is drawn on the title screen.
 pub struct Cursor {
-mut:
+pub mut:
 	// current position
 	x f32
 	y f32
@@ -352,7 +352,7 @@ mut:
 	// margin is the distance between the cursor and the menu item.
 	margin int = 10
 	// speed is the speed at which the cursor moves.
-	speed int = 10
+	speed      int = 10
 	// annotation is the character used to denote the selected item.
 	/**
 	 * example if annotation[0] is '>'
@@ -397,12 +397,12 @@ pub fn (mut selected Cursor) update() {
 // draw draws the cursor to the screen.
 pub fn (mut selected Cursor) draw(mut g gg.Context, font_size int) {
 	g.draw_text(int(selected.x), int(selected.y), selected.annotation[0],
-		size: font_size
+		size:  font_size
 		color: selected.text_color
 	)
 	g.draw_text(int(selected.x) + g.text_width(selected.annotation[0]) + selected.margin,
 		int(selected.y), selected.annotation[1],
-		size: font_size
+		size:  font_size
 		color: selected.text_color
 	)
 }
@@ -425,14 +425,14 @@ __global:
 }
 
 // Padding.new creates a new `Padding` with the same padding on all sides.
-[inline]
+@[inline]
 pub fn Padding.new(padding int) Padding {
 	return Padding{padding, padding, padding, padding}
 }
 
 // Padding.yx creates a new `Padding` with the given padding on the y (top
 // and bottom) and x (left and right) axes.
-[inline]
+@[inline]
 pub fn Padding.yx(y int, x int) Padding {
 	return Padding{y, x, y, x}
 }

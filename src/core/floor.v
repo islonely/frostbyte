@@ -12,7 +12,7 @@ struct Floor {
 // Floor.new instantiates a new Floor object with the given texture.
 fn Floor.new(texture gg.Image) Floor {
 	return Floor{
-		Coords: Coords.new()
+		Coords:  Coords.new()
 		texture: texture
 	}
 }

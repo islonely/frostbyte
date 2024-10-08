@@ -23,7 +23,7 @@ __global:
 
 // ButtonMenuItemEvents is a set of events that can be invoked by a
 // `ButtonMenuItem`.
-[params]
+@[params]
 pub struct ButtonMenuItemEvents {
 __global:
 	click ?fn ()
@@ -31,11 +31,11 @@ __global:
 
 // ButtonMenuItem.new creates a new `ButtonMenuItem` with the given label and
 // function to invoke when the item is selected.
-[inline]
+@[inline]
 pub fn ButtonMenuItem.new(label string, padding Padding, events ButtonMenuItemEvents) ButtonMenuItem {
 	return ButtonMenuItem{
-		label: label
-		on: events
+		label:   label
+		on:      events
 		padding: padding
 	}
 }
@@ -55,7 +55,7 @@ mut:
 
 // CycleMenuItemEvents is a set of events that can be invoked by a
 // `CycleMenuItem`.
-[params]
+@[params]
 pub struct CycleMenuItemEvents {
 __global:
 	click ?fn (string)
@@ -64,15 +64,15 @@ __global:
 
 // CycleMenuItem.new creates a new `CycleMenuItem` with the given label, values,
 // and function to invoke when the item is selected.
-[inline]
+@[inline]
 pub fn CycleMenuItem.new(label string, start_value int, values []string, events CycleMenuItemEvents) CycleMenuItem {
 	return CycleMenuItem{
-		label: label
-		values: values
-		on: events
+		label:          label
+		values:         values
+		on:             events
 		selected_value: start_value % values.len
-		current_value: start_value % values.len
-		padding: Padding.new(0)
+		current_value:  start_value % values.len
+		padding:        Padding.new(0)
 	}
 }
 
@@ -86,19 +86,19 @@ pub fn (mut item CycleMenuItem) cycle(distance int) {
 }
 
 // cycle_right cycles the `CycleMenuItem` to the right.
-[inline]
+@[inline]
 pub fn (mut item CycleMenuItem) cycle_right() {
 	item.cycle(1)
 }
 
 // cycle_left cycles the `CycleMenuItem` to the left.
-[inline]
+@[inline]
 pub fn (mut item CycleMenuItem) cycle_left() {
 	item.cycle(-1)
 }
 
 // value returns the currently selected value of the `CycleMenuItem`.
-[inline]
+@[inline]
 pub fn (item CycleMenuItem) value() string {
 	return item.values[item.selected_value]
 }
@@ -123,7 +123,7 @@ __global:
 
 // ToggleMenuItemEvents is a set of events that can be invoked by a
 // `ToggleMenuItem`.
-[params]
+@[params]
 pub struct ToggleMenuItemEvents {
 __global:
 	toggle     ?fn (bool)
@@ -136,7 +136,7 @@ __global:
 pub fn ToggleMenuItem.new(label string, events ToggleMenuItemEvents) ToggleMenuItem {
 	mut toggle_item := ToggleMenuItem{
 		label: label
-		on: events
+		on:    events
 	}
 	if toggle_item.on.toggle == none {
 		toggle_item.on.toggle = fn [mut toggle_item] (toggled_on bool) {
@@ -155,7 +155,7 @@ pub fn ToggleMenuItem.new(label string, events ToggleMenuItemEvents) ToggleMenuI
 }
 
 // text returns the text to display for the `ToggleMenuItem`.
-[inline]
+@[inline]
 pub fn (item ToggleMenuItem) text() string {
 	return '${item.label}: ${item.toggle_labels[int(item.toggled_on)]}'
 }

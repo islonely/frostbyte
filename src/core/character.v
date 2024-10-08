@@ -6,20 +6,16 @@ import rand
 import time
 import x.json2
 
-// todo: make characters one type instead of an interface. Character should become
-// a single struct. And the game should load characters from a file on init to
-// allow for modding.
+const const_characters_dir = os.abs_path('./characters')
 
-const (
-	const_characters_dir = os.abs_path('./characters')
-)
-
+// init_characters loads characters locally allowing for custom characters to be added
+// to the game.
 fn init_characters(mut game Game) ! {
-	if os.is_dir_empty(core.const_characters_dir) {
-		return error('no characters found in ' + core.const_characters_dir)
+	if os.is_dir_empty(const_characters_dir) {
+		return error('no characters found in ' + const_characters_dir)
 	}
 
-	os.walk(core.const_characters_dir, fn [mut game] (file string) {
+	os.walk(const_characters_dir, fn [mut game] (file string) {
 		// if the file does not have an extension, skip it
 		if !os.file_name(file).contains('.') {
 			return
@@ -39,18 +35,22 @@ fn init_characters(mut game Game) ! {
 
 		uuid := rand.uuid_v4()
 		mut character := &Character{
-			name: raw_json['name'] or {
+			name:      raw_json['name'] or {
 				println('Notice: character name missing (${file})')
 				json2.Any(uuid)
 			}.str()
-			id: uuid
-			width: raw_json['width'] or {
+			id:        uuid
+			width:     raw_json['width'] or {
 				println('Warning: character width missing (${file})')
 				json2.Any(0)
 			}.f32()
-			height: raw_json['height'] or {
+			height:    raw_json['height'] or {
 				println('Warning: character height missing (${file})')
 				json2.Any(0)
+			}.f32()
+			run_speed: raw_json['speed'] or {
+				println('Warning: character speed missing (${file}); Using default of 300.')
+				json2.Any(60000)
 			}.f32()
 		}
 		raw_sprites := raw_json['sprites'] or {
@@ -88,9 +88,9 @@ fn init_characters(mut game Game) ! {
 					continue sprites_state
 				}
 				character.sprites[enum_val].rects << gg.Rect{
-					x: rect_arr[0].int()
-					y: rect_arr[1].int()
-					width: rect_arr[2].int()
+					x:      rect_arr[0].int()
+					y:      rect_arr[1].int()
+					width:  rect_arr[2].int()
 					height: rect_arr[3].int()
 				}
 			}
@@ -110,7 +110,7 @@ pub mut:
 	z         f32
 	width     f32
 	height    f32
-	run_speed f32 = 300
+	run_speed f32            = 300
 	state     CharacterState = .idle
 	// todo: make this map[string]Sprites so that modders can add new states.
 	sprites        map[CharacterState]Sprites
@@ -125,7 +125,8 @@ pub fn (mut character Character) update() {
 		time.millisecond * 700 / character.sprites[character.state].rects.len
 	}
 
-	if character.sprites[character.state].oscillate {
+	oscillation_enabled := character.sprites[character.state].oscillate
+	if oscillation_enabled {
 		character.anim_idx = int(character.anim_stopwatch.elapsed() / dur) % (character.sprites[character.state].rects.len * 2)
 		if character.anim_idx >= character.sprites[character.state].rects.len {
 			character.anim_idx = character.sprites[character.state].rects.len - (character.anim_idx - character.sprites[character.state].rects.len) - 1
@@ -139,12 +140,12 @@ pub fn (mut character Character) update() {
 pub fn (mut character Character) draw(mut game Game) {
 	flip_x := if character.facing == .left { true } else { false }
 	game.draw_image_with_config(
-		flip_x: flip_x
-		img: character.sprites[character.state].image
-		img_rect: gg.Rect{
-			x: character.x - game.camera.x
-			y: character.y - game.camera.y
-			width: character.width
+		flip_x:    flip_x
+		img:       character.sprites[character.state].image
+		img_rect:  gg.Rect{
+			x:      character.x - game.camera.x
+			y:      character.y - game.camera.y
+			width:  character.width
 			height: character.height
 		}
 		part_rect: character.sprites[character.state].rects[character.anim_idx]

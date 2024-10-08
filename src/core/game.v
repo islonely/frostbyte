@@ -8,11 +8,9 @@ import core.menu
 import term
 import time
 
-const (
-	const_initial_width  = 1920
-	const_initial_height = 1080
-	const_window_title   = 'Frostbyte'
-)
+const const_initial_width = 1920
+const const_initial_height = 1080
+const const_window_title = 'Frostbyte'
 
 // GameState represents the current state of the game.
 enum GameState {
@@ -23,7 +21,7 @@ enum GameState {
 }
 
 // Game is the primary game object.
-[heap]
+@[heap]
 struct Game {
 	gg.Context
 pub mut:
@@ -63,7 +61,7 @@ pub mut:
 	characters struct {
 	pub mut:
 		available []&Character
-		selected  int
+		selected  int = 1
 	}
 
 	main_menu          menu.Menu
@@ -74,19 +72,19 @@ pub mut:
 pub fn Game.new() &Game {
 	mut game := &Game{}
 	game.Context = gg.new_context(
-		bg_color: gx.black
-		width: core.const_initial_width
-		height: core.const_initial_height
-		window_title: core.const_window_title
-		frame_fn: frame
-		init_fn: init
-		event_fn: event
-		user_data: game
+		bg_color:     gx.black
+		width:        const_initial_width
+		height:       const_initial_height
+		window_title: const_window_title
+		frame_fn:     frame
+		init_fn:      init
+		event_fn:     event
+		user_data:    game
 	)
 	return game
 }
 
-[inline]
+@[inline]
 fn (game Game) character() &Character {
 	return game.characters.available[game.characters.selected]
 }
@@ -105,7 +103,7 @@ fn init(mut game Game) {
 	// main menu
 	game.main_menu = menu.Menu.new(menu.ButtonMenuItem{
 		label: 'Play'
-		on: menu.ButtonMenuItemEvents{
+		on:    menu.ButtonMenuItemEvents{
 			click: fn [mut game] () {
 				game.camera.x, game.camera.y = 0, 0
 				game.state = .in_game
@@ -113,14 +111,14 @@ fn init(mut game Game) {
 		}
 	}, menu.ButtonMenuItem{
 		label: 'Settings'
-		on: menu.ButtonMenuItemEvents{
+		on:    menu.ButtonMenuItemEvents{
 			click: fn [mut game] () {
 				game.state = .main_menu_settings
 			}
 		}
 	}, menu.ButtonMenuItem{
 		label: 'Quit'
-		on: menu.ButtonMenuItemEvents{
+		on:    menu.ButtonMenuItemEvents{
 			click: fn [mut game] () {
 				game.quit()
 			}
@@ -135,7 +133,7 @@ fn init(mut game Game) {
 
 	// main menu settings
 	game.main_settings_menu = menu.Menu.new(menu.ToggleMenuItem.new('Fullscreen',
-		toggle_on: game.toggle_fullscreen
+		toggle_on:  game.toggle_fullscreen
 		toggle_off: game.toggle_fullscreen
 	), menu.CycleMenuItem.new('FPS', 1, ['30', '60', '90', '120', '144', '165', 'unlimited'],
 		click: fn [mut game] (value string) {
@@ -147,7 +145,7 @@ fn init(mut game Game) {
 		}
 	), menu.ButtonMenuItem{
 		label: 'Back'
-		on: menu.ButtonMenuItemEvents{
+		on:    menu.ButtonMenuItemEvents{
 			click: fn [mut game] () {
 				game.state = .main_menu
 			}
@@ -231,7 +229,7 @@ fn (mut game Game) on_resize() {
 }
 
 // frame is called every time a frame is rendered.
-[direct_array_access]
+@[direct_array_access]
 fn frame(mut game Game) {
 	game.time.stopwatch.restart()
 	game.begin()
@@ -322,9 +320,9 @@ fn (mut game Game) draw_paused() {
 	game.draw_in_game()
 	game.draw_overlay()
 	game.draw_text(int(game.width / 2), int(game.height / 2), 'Paused',
-		color: gx.white
-		size: 64
-		align: .center
+		color:          gx.white
+		size:           64
+		align:          .center
 		vertical_align: .middle
 	)
 }
@@ -361,7 +359,7 @@ fn (mut game Game) draw_main_menu_settings() {
 }
 
 // draw_overlay draws a semi-transparent black overlay over the screen.
-[inline]
+@[inline]
 fn (mut game Game) draw_overlay() {
 	game.draw_rect_filled(0, 0, game.width, game.height, gx.Color{0, 0, 0, 128})
 }
@@ -374,7 +372,7 @@ fn (mut game Game) fatal_error(msg string) {
 
 // debug outputs information helpful for debugging if the game in ran
 // with the -cg V flag.
-[if debug]
+@[if debug]
 fn (mut game Game) debug() {
 	for {
 		println('Delta: ${game.time.delta}')
