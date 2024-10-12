@@ -43,7 +43,7 @@ pub fn ButtonMenuItem.new(label string, padding Padding, events ButtonMenuItemEv
 // CycleMenuItem is a menu item that can be cycled through by pressing a button.
 //
 pub struct CycleMenuItem {
-mut:
+__global:
 	label          string
 	values         []string
 	selected_value int

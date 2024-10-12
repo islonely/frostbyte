@@ -73,12 +73,12 @@ pub fn (mut menu Menu) get_current_item_pos(mut g gg.Context) (int, int) {
 }
 
 // update updates the menu.
-pub fn (mut menu Menu) update(mut g gg.Context) {
+pub fn (mut menu Menu) update(mut g gg.Context, delta f32) {
 	current_item_x, current_item_y := menu.get_current_item_pos(mut g)
 	menu.selected.target_x = current_item_x - menu.selected.margin - g.text_width(menu.selected.annotation[0])
 	menu.selected.target_y = current_item_y
 
-	menu.selected.update()
+	menu.selected.update(delta)
 }
 
 // event handles events for the menu.
@@ -352,7 +352,7 @@ pub mut:
 	// margin is the distance between the cursor and the menu item.
 	margin int = 10
 	// speed is the speed at which the cursor moves.
-	speed      int = 10
+	speed      int = 150
 	// annotation is the character used to denote the selected item.
 	/**
 	 * example if annotation[0] is '>'
@@ -368,12 +368,12 @@ pub mut:
 }
 
 // update updates the cursor position.
-pub fn (mut selected Cursor) update() {
+pub fn (mut selected Cursor) update(delta f32) {
 	selected.percent_y = math.abs(f32(selected.y - selected.start_y)) / math.abs(f32(selected.target_y - selected.start_y))
 	selected.percent_x = math.abs(f32(selected.x - selected.start_x)) / math.abs(f32(selected.target_x - selected.start_x))
 	// ease in
-	relative_speed_y := selected.speed * Easing.ease_out_cubic(selected.percent_y) + 0.5
-	relative_speed_x := selected.speed * Easing.ease_out_cubic(selected.percent_x) + 0.5
+	relative_speed_y := (selected.speed * Easing.ease_out_cubic(selected.percent_y) + 0.5) * delta * 10
+	relative_speed_x := (selected.speed * Easing.ease_out_cubic(selected.percent_x) + 0.5) * delta * 10
 	if math.abs(selected.target_x - selected.x) > relative_speed_x {
 		if selected.target_x > selected.x {
 			selected.x += relative_speed_x
@@ -400,7 +400,7 @@ pub fn (mut selected Cursor) draw(mut g gg.Context, font_size int) {
 		size:  font_size
 		color: selected.text_color
 	)
-	g.draw_text(int(selected.x) + g.text_width(selected.annotation[0]) + selected.margin,
+	g.draw_text(int(selected.x) + g.text_width(selected.annotation[1]) + selected.margin,
 		int(selected.y), selected.annotation[1],
 		size:  font_size
 		color: selected.text_color

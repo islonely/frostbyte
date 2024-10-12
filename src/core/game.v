@@ -18,6 +18,7 @@ enum GameState {
 	paused
 	main_menu
 	main_menu_settings
+	level_designer_menu
 }
 
 // Game is the primary game object.
@@ -49,7 +50,7 @@ pub mut:
 		fullscreen bool
 		// todo: change this to ?int. V bug
 		// currently not allowing it.
-		fps_cap  int  = 60
+		fps_cap  int  = -1
 		show_fps bool = $if debug {
 			true
 		} $else {
@@ -64,8 +65,9 @@ pub mut:
 		selected  int = 1
 	}
 
-	main_menu          menu.Menu
-	main_settings_menu menu.Menu
+	main_menu           menu.Menu
+	main_settings_menu  menu.Menu
+	level_designer_menu menu.Menu
 }
 
 // Game.new instantiates a new `Game` object.
@@ -110,6 +112,13 @@ fn init(mut game Game) {
 			}
 		}
 	}, menu.ButtonMenuItem{
+		label: 'Level Designer'
+		on:    menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				game.state = .level_designer_menu
+			}
+		}
+	}, menu.ButtonMenuItem{
 		label: 'Settings'
 		on:    menu.ButtonMenuItemEvents{
 			click: fn [mut game] () {
@@ -126,7 +135,7 @@ fn init(mut game Game) {
 	})
 	game.main_menu.selected = menu.Cursor{
 		text_color: gx.white
-		annotation: ['-', '']!
+		annotation: ['–', '']!
 	}
 	game.set_text_cfg(size: game.main_menu.font_size)
 	game.main_menu.center(mut game.Context)
@@ -135,7 +144,7 @@ fn init(mut game Game) {
 	game.main_settings_menu = menu.Menu.new(menu.ToggleMenuItem.new('Fullscreen',
 		toggle_on:  game.toggle_fullscreen
 		toggle_off: game.toggle_fullscreen
-	), menu.CycleMenuItem.new('FPS', 1, ['30', '60', '90', '120', '144', '165', 'unlimited'],
+	), menu.CycleMenuItem.new('FPS', 6, ['30', '60', '90', '120', '144', '165', 'unlimited'],
 		click: fn [mut game] (value string) {
 			game.settings.fps_cap = if value == 'unlimited' {
 				-1
@@ -152,6 +161,31 @@ fn init(mut game Game) {
 		}
 	})
 	game.main_settings_menu.center(mut game.Context)
+
+	// level designer menu
+	game.level_designer_menu = menu.Menu.new(menu.ButtonMenuItem{
+		label: 'New'
+		on:    menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				println('game state level designer new')
+			}
+		}
+	}, menu.ButtonMenuItem{
+		label: 'Levels'
+		on:    menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				println('game state level designer choose')
+			}
+		}
+	}, menu.ButtonMenuItem{
+		label: 'Back'
+		on:    menu.ButtonMenuItemEvents{
+			click: fn [mut game] () {
+				game.state = .main_menu
+			}
+		}
+	})
+	game.level_designer_menu.center(mut game.Context)
 
 	// init background images
 	mut bg_images := []gg.Image{cap: 3}
@@ -211,6 +245,9 @@ fn event(evt &gg.Event, mut game Game) {
 		.main_menu_settings {
 			game.main_settings_menu.event(evt, mut game.Context)
 		}
+		.level_designer_menu {
+			game.level_designer_menu.event(evt, mut game.Context)
+		}
 	}
 }
 
@@ -253,6 +290,7 @@ fn (mut game Game) update() {
 		.in_game { game.update_in_game() }
 		.main_menu { game.update_main_menu() }
 		.main_menu_settings { game.update_main_menu_settings() }
+		.level_designer_menu { game.update_level_designer_menu() }
 	}
 }
 
@@ -288,14 +326,21 @@ fn (mut game Game) update_in_game() {
 // the game is in the `main_menu` state.
 fn (mut game Game) update_main_menu() {
 	game.camera.x += 150 * game.time.delta
-	game.main_menu.update(mut game.Context)
+	game.main_menu.update(mut game.Context, game.time.delta)
 }
 
 // update_main_menu_settings handles all the math that goes on in the game
 // while the game is in the `main_menu_settings` state.
 fn (mut game Game) update_main_menu_settings() {
 	game.update_main_menu()
-	game.main_settings_menu.update(mut game.Context)
+	game.main_settings_menu.update(mut game.Context, game.time.delta)
+}
+
+// update_level_designer_menu handles all the math that goes on in the game
+// while the game is in the `level_designer_menu` state.
+fn (mut game Game) update_level_designer_menu() {
+	game.update_main_menu()
+	game.level_designer_menu.update(mut game.Context, game.time.delta)
 }
 
 // draw renders the game to the screen.
@@ -305,6 +350,7 @@ fn (mut game Game) draw_frame() {
 		.in_game { game.draw_in_game() }
 		.main_menu { game.draw_main_menu() }
 		.main_menu_settings { game.draw_main_menu_settings() }
+		.level_designer_menu { game.draw_level_designer_menu() }
 	}
 
 	// draws a vertical and horizontal line through the center of the window.
@@ -356,6 +402,14 @@ fn (mut game Game) draw_main_menu_settings() {
 	game.draw_background()
 	game.draw_overlay()
 	game.main_settings_menu.draw(mut game.Context)
+}
+
+// draw_level_designer_menu renders the game to the screen while the game is
+// in the `level_designer_menu` state.
+fn (mut game Game) draw_level_designer_menu() {
+	game.draw_background()
+	game.draw_overlay()
+	game.level_designer_menu.draw(mut game.Context)
 }
 
 // draw_overlay draws a semi-transparent black overlay over the screen.
